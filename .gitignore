@@ -1,0 +1,8 @@
+*.pyg
+*.toc
+*.aux
+*.dvi
+*.ps
+*.bbl
+*.blg
+*.eps
