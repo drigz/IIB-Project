@@ -1,0 +1,44 @@
+introduction
+- background on RMLC, comparison to other control approaches
+- background on unicycle project, comparison to other robot unicycles
+- why we want to use RMLC on the unicycle
+
+RMLC ("theory")
+- description of RMLC (not too much detail necessary)
+- details relevant to project, e.g. loss function, sample rate,
+    extending state to 2nd order, quadratic controller
+
+Hardware and Software
+- summary of changes made
+-- Arduino
+-- gyro & accelerometer + I2C level converter
+-- cutoff switches and power switch
+-- fall protection
+-- voltage sensing
+
+- fall protection
+-- skirt design
+-- analysis of spin speed
+-- reduced weight skirt failed, replaced with rope system
+
+- sensing
+-- description of MEMS gyros & accelerometers, noise levels and maths used
+-- description of shaft encoders and speed sensing algorithm
+-- description of self-centred position integration
+
+- reliability (or lack thereof)
+-- HW self-test
+-- I2C timeouts
+-- fan belt problems, reduced max. motor command
+
+Learning Results
+- 2D unicycle w/ training wheels
+- initial 3D run (balanced, but couldn't stabilise position)
+- second 3D run (failed to balance)
+-- possible reasons for second failure
+
+Conclusion
+Further Work
+References
+Evaluation of Risk Assessment
+(Mathematical derivations?)
