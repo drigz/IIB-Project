@@ -121,7 +121,40 @@ as well as other problems identified during the project.
 
 \section{Reinforced Model Learnt Control}
 
-The core technique in this project is Reinforced Model Learnt Control. 
+The main technique in this project is Reinforced Model Learnt Control,
+diagrammed in Figure~\ref{fig:rmlc_flowchart}. At its core, it assumes that
+the system (in this case, the unicycle) can be modelled in discrete time as:
+
+\[
+  \boldsymbol{q}[n+1] = \boldsymbol{f}(\boldsymbol{q}[n],
+  \boldsymbol{u}[n])
+\]
+
+In this equation, $\boldsymbol{q}[n]$ is the state of the system at time $n$,
+and $\boldsymbol{u}[n]$ is control input at time $n$. In the case of the
+unicycle, $\boldsymbol{q}$ consists of angles and angular velocities of the
+components of the unicycle, and the position of the unicycle.
+$\boldsymbol{u}$ consists of the commands sent to the wheel and flywheel
+motors.
+
+This function, $\boldsymbol{f}$, is modelled as a Gaussian Process (GP). By
+using Gaussian Process Regression (GPR), we can estimate any continuous
+function from sampled inputs and outputs. Thus, when the unicycle runs, we get
+a series of states and control inputs that are sampled from
+$\boldsymbol{f}$, which can be used to estimate how the state will change
+given any current state and control input. Crucially, since the output of GPR
+is a Gaussian distribution, this method indicates the level of confidence its
+predictions.
+
+
+
+\begin{figure}[htbp]
+  \begin{center}
+    \includegraphics[width=14cm]{figures/GPR MLC.pdf}
+    \end{center}
+    \caption{Reinforced Model Learnt Control}
+    \label{fig:rmlc_flowchart}
+    \end{figure}
 
 \section{Apparatus and Experimental Results}
 
