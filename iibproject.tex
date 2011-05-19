@@ -83,7 +83,7 @@ only able to complete the construction of the unicycle. In 2007/2008,
 D'Souza-Mathew resumed work, replacing a wheel sensor and attempting to design
 a controller. He simplified the problem by removing the ability to fall to the
 side, reducing it to 2D dynamic control: the inverted pendulum (from
-now on referred to as the 2D system). This is shown in
+now on referred to as the \textbf{2D system}). This is shown in
 Figure~\ref{fig:forster_unicycle}. He was unable to balance the unicycle due to
 hardware problems.
 
@@ -185,10 +185,11 @@ system.
 \subsection{Practical Concerns}
 
 There are many different decisions to make when implementing the RMLC
-strategy, which are detailed in this section. Fortunately, due to previous
-work on stabilising both the real 2D system and the simulation of the 3D
-unicycle, we had a lot of information on which choices can work well in these
-situations, and which are most important.
+strategy, which are detailed in this section. Previously, Rasmussen used
+Forster's analytical model of the unicycle to simulate it, and used RMLC to
+train a controller for this ideal unicycle. Thanks to this, and to McHutchon's
+work on the real 2D system, we have a lot of information on which choices can
+work well in these situations, and which are most important.
 
 \subsubsection{GPR Implementation}
 The GPR system has many configurable parameters, but fortunately the form used
@@ -222,8 +223,7 @@ control inputs. In other words, the states should form a Markov Chain:
 \]
 
 Forster's analysis suggested the following state to be suitable, which was
-found by Rasmussen to be sufficient to model the simulation of the 3D
-unicycle.
+found by Rasmussen to be sufficient to model the ideal unicycle.
 
 \[
 \boldsymbol{q}[n] = \left[ \begin{array}{ll}
@@ -306,18 +306,63 @@ This allows the RMLC system to create basic low or high-pass filters in
 the controller, and this additional freedom improved the subjective quality of
 the controllers trained.
 
-\begin{itemize}
-  \item GPR implementation (choice of covariance function, sparse
-    approximations, etc.)
-  \item contents of the state vector
-  \item form of the controller (e.g. linear:
-    $\boldsymbol{g}(\boldsymbol{q}[n]) =
-    \boldsymbol{w}^\textrm{T}\boldsymbol{q}[n]$)
-  \item loss function
-  \item timestep for conversion to discrete time
-    \end{itemize}
+\subsubsection{Loss Function}
 
-\section{Apparatus and Experimental Results}
+The main concerns when choosing a loss function are accurately represent what
+is desired of the controller, and to ensure that different desires are
+appropriately weighted. When stabilising the ideal unicycle, Rasmussen was
+successful using the following form of loss function:
+
+\[
+  1 - \mathcal{N}(\boldsymbol{q}[n]; \boldsymbol{\mu}, \boldsymbol{\Sigma})
+  = 1 - \exp\left(\sum_{d=1}^D - \frac{(q_d[n] - \mu_d)^2}{w_d^2}\right)
+\]
+
+This is configured using $w_d$, the characteristic widths for each variable.
+To ignore a variable, take $w_d^{-2} = 0$. While the RMLC system is not too
+sensitive to these values, it is important to set them appropriately. During a
+test run on the 2D system, we accidentally set the characteristic pitch angle
+to $10^\circ$ and the characteristic distance (from the origin) to around
+10cm. This meant that the preferred policy was to fall over immediately, to
+prevent travelling away from the origin. Loosening the characteristic distance
+to 30cm led to a controller that balanced the system.
+
+For the ideal unicycle, Rasmussen chose to penalise the pitch and roll angles,
+to encourage the system to keep the robot vertical.  In addition, he chose to
+penalise the yaw rate $\dot{\phi}$ and flywheel rate $\dot{\psi}_t$ to prevent
+the system from using a ``spinning-top'' like approach to balance, and to
+penalise the distances from the origin, $x_c$ and $y_c$, to prevent the system
+from driving the robot very fast to enhance stability.
+
+We used the same loss function structure, with characteristic widths of
+$9^\circ$ on the angles, 1 metre on the distances and 1 rps \& 3 rps on the
+yaw \& flywheel rates respectively. Unlike the ideal unicycle, the real
+unicycle has an upper limit on the flywheel speed, so the ``spinning-top''
+strategy is not viable, so it is possible that the yaw \& flywheel rates need
+not be penalised. This was not tested.
+
+\subsubsection{Timestep}
+
+The RMLC approach assumes a discrete-time system - to apply it to a continuous
+time system, it must be discretised. We used a zero-order hold (ZOH) on the
+control signal: $u(t)~=~u[\lfloor\frac{t}{T}\rfloor]$
+
+Training for the ideal unicycle, Rasmussen found it desirable to choose the
+largest timestep $T$ with which the system can be stabilised, to reduce the
+computational cost of the optimisation, and to avoid problems with noise
+buildup from many repeated applications of the transition function
+$\boldsymbol{f}$. He chose a timestep of $\frac{1}{7}$ seconds.
+
+However, for the real unicycle, both McHutchon and we found that the predicted
+trajectories are more confident and reliable, and controllers perform better,
+when using a timestep of $\frac{1}{20}$ seconds. It was hoped that this was
+because the sensors were noisier in real life, and so a shorter time in the
+ZOH led to several successive noisy control settings being averaged by the
+low-pass effect of the system, reducing the effect of noise. However,
+upgrading the sensors didn't seem to change this, so there is possibly another
+cause.
+
+\section{Hardware}
 
 \section{Results and Discussion}
 
