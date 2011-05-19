@@ -124,7 +124,6 @@ as well as other problems identified during the project.
 The main technique in this project is Reinforced Model Learnt Control,
 diagrammed in Figure~\ref{fig:rmlc_flowchart}. At its core, it assumes that
 the system (in this case, the unicycle) can be modelled in discrete time as:
-
 \[
   \boldsymbol{q}[n+1] = \boldsymbol{f}(\boldsymbol{q}[n],
   \boldsymbol{u}[n])
@@ -139,18 +138,42 @@ motors.
 
 This function, $\boldsymbol{f}$, is modelled as a Gaussian Process (GP). By
 using Gaussian Process Regression (GPR), we can estimate any continuous
-function from sampled inputs and outputs. Thus, when the unicycle runs, we get
-a series of states and control inputs that are sampled from
-$\boldsymbol{f}$, which can be used to estimate how the state will change
-given any current state and control input. Crucially, since the output of GPR
-is a Gaussian distribution, this method indicates the level of confidence its
-predictions.
+function from sampled inputs and outputs. For a description of the mechanics
+of GPR, refer to \cite{ref:gpml}. When the unicycle runs, we get
+a series of states and control inputs that can be converted to samples of
+$\boldsymbol{f}$, and this allows us to use GPR to estimate
+$\boldsymbol{f}$ at any point. This estimated $\boldsymbol{f}$ is referred to
+as the \textbf{dynamics model}.
 
+By successively applying $\boldsymbol{f}$ to an initial distribution of
+possible starting states, we can estimate, with confidence bounds, a
+distribution of states over some finite horizon. This is referred to as
+\textbf{simulation} of the system. Then, a \textbf{loss function} is applied
+to the state distributions---this might find, for example, the expected
+distance between the top of the unicycle and the upright position.  Summing
+these losses over the horizon gives a numerical score that rates how well the
+dynamics model believes a given controller will balance the unicycle. This
+loss score penalises uncertainty as well as falling.
 
+The gradient of the loss with respect to the controller parameters can be
+calculated, and this allows standard gradient descent optimisation methods to
+be used to find a locally optimal controller (for the estimated dynamics
+model). This process is shown as the right-hand box, ``Simulation \&
+Controller Optimisation'', in Figure~\ref{fig:rmlc_flowchart}, and is referred
+to as \textbf{training} a controller.
+
+Once a optimal controller has been trained on the simulated system, a
+\textbf{rollout} is performed on the real system (``Real World Testing'' in
+Figure~\ref{fig:rmlc_flowchart}). This generates a log of states and control
+inputs, which can be converted into more samples of $\boldsymbol{f}$,
+improving the quality of the dynamics model and allowing a better controller
+to be trained. This process is repeated iteratively until the dynamics model
+is sufficiently accurate that the trained controllers perform well on the real
+system.
 
 \begin{figure}[htbp]
   \begin{center}
-    \includegraphics[width=14cm]{figures/GPR MLC.pdf}
+    \includegraphics[width=14cm]{figures/GPRMLC.pdf}
     \end{center}
     \caption{Reinforced Model Learnt Control}
     \label{fig:rmlc_flowchart}
