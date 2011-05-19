@@ -9,6 +9,7 @@
 \usepackage{minted}
 \usepackage{url}
 \usepackage[margin=2.5cm]{geometry}
+\usepackage{multirow}
 
 \usepackage[retainorgcmds]{IEEEtrantools}
 
@@ -41,7 +42,9 @@
 \tableofcontents
 \newpage
 
-\section{Introduction} Balancing a unicycle is a very challenging task for a
+\section{Introduction}
+
+Balancing a unicycle is a very challenging task for a
 human rider. Many attempts have been made to achieve this task, using a
 variety of models for the action of the rider. Some represent the rider as a
 flywheel or pendulum in the coronal plane, allowing direct compensation of
@@ -121,6 +124,14 @@ as well as other problems identified during the project.
 
 \section{Reinforced Model Learnt Control}
 
+\begin{figure}[htbp]
+  \begin{center}
+    \includegraphics[width=14cm]{figures/GPRMLC.pdf}
+    \end{center}
+    \caption{Reinforced Model Learnt Control}
+    \label{fig:rmlc_flowchart}
+    \end{figure}
+
 The main technique in this project is Reinforced Model Learnt Control,
 diagrammed in Figure~\ref{fig:rmlc_flowchart}. At its core, it assumes that
 the system (in this case, the unicycle) can be modelled in discrete time as:
@@ -171,13 +182,140 @@ to be trained. This process is repeated iteratively until the dynamics model
 is sufficiently accurate that the trained controllers perform well on the real
 system.
 
+\subsection{Practical Concerns}
+
+There are many different decisions to make when implementing the RMLC
+strategy, which are detailed in this section. Fortunately, due to previous
+work on stabilising both the real 2D system and the simulation of the 3D
+unicycle, we had a lot of information on which choices can work well in these
+situations, and which are most important.
+
+\subsubsection{GPR Implementation}
+The GPR system has many configurable parameters, but fortunately the form used
+previously had proven very robust. This project uses a zero-mean GP with a
+squared exponential covariance function, with automatic relevance detection.
+This has the form:
+\[
+  k(\boldsymbol{x}, \boldsymbol{x}') = \alpha^2 \exp \left(\sum_{d=1}^D -
+  \frac{(x_d-x_d')^2}{2 l_d^2}\right)
+\]
+
+This expression contains hyperparameters for the signal variance $\alpha^2$
+and the length scales $l_d$. An additional hyperparameter involved in the
+regression is the noise variance, $\sigma_\varepsilon^2$. These parameters are
+chosen to best fit the data without overfitting with the maximum likelihood
+(ML) method\cite{ref:gpml}. The optimal values of these hyperparameters are
+very useful for interpreting how accurate the dynamics model is: a high SNR
+$\frac{\alpha}{\sigma_\varepsilon}$ suggests the model can predict very
+well.  Furthermore, automatic relevance detection is provided by the length
+scales - if a variable is not useful for predicting, the ML length scale will
+tend to $\inf$.
+
+\subsubsection{Choice of State Vector}
+
+The state vector $\boldsymbol{q}[n]$ should be chosen to ensure that the
+future states are a function only of the current state, and current and future
+control inputs. In other words, the states should form a Markov Chain:
+\[
+  P(\boldsymbol{q}[n+1] | \boldsymbol{q}[i]\textrm{ for } i = 1, \dots, n)
+  = P(\boldsymbol{q}[n+1] | \boldsymbol{q}[n])
+\]
+
+Forster's analysis suggested the following state to be suitable, which was
+found by Rasmussen to be sufficient to model the simulation of the 3D
+unicycle.
+
+\[
+\boldsymbol{q}[n] = \left[ \begin{array}{ll}
+  \dot{\theta} & \textrm{roll angular velocity} \\
+  \dot{\phi} & \textrm{yaw angular velocity} \\
+  \dot{\psi}_w & \textrm{wheel angular velocity} \\
+  \dot{\psi}_f & \textrm{pitch angular velocity} \\
+  \dot{\psi}_t & \textrm{flywheel (turntable) angular velocity} \\
+  x_c & \multirow{2}{*}{\textrm{position of target in unicycle's reference
+  frame}} \\
+  y_c & \\
+  \theta & \textrm{roll angle} \\
+  \psi_f & \textrm{pitch angle} \\
+\end{array}\right]
+\]
+
 \begin{figure}[htbp]
   \begin{center}
-    \includegraphics[width=14cm]{figures/GPRMLC.pdf}
+    \includegraphics[height=8cm]{figures/angles.pdf}
     \end{center}
-    \caption{Reinforced Model Learnt Control}
-    \label{fig:rmlc_flowchart}
+    \caption{Diagram showing Euler angles for the rotation of the unicycle
+    (from \cite{ref:forster})}
+    \label{fig:unicycle_angles}
     \end{figure}
+
+However, this ignores the presence of unobserved states in the system like
+delays, backlash in the gears, etc. To help the dynamics model deal with these
+problems, we tried giving it access to the previous state and control input,
+in effect modelling it as a 2$^\textrm{nd}$ order Markov chain:
+\[
+  \boldsymbol{q}_2[n] = \left[ \begin{array}{l}
+    \boldsymbol{q}[n-1] \\
+    \boldsymbol{u}[n-1] \\
+    \boldsymbol{q}[n] \\
+  \end{array} \right]
+\]
+
+This significantly improved the accuracy of the dynamics model, which in turn
+suggests that unobserved states are significant in the behaviour of the real
+unicycle. 
+
+\subsubsection{Controller Form}
+
+The most basic form of controller is a linear controller,
+$\boldsymbol{g}(\boldsymbol{q}[n]) = \boldsymbol{W} \boldsymbol{q}[n] +
+\boldsymbol{p}$, where $\boldsymbol{W}$ is a matrix of weights and
+$\boldsymbol{p}$ is a vector of offsets. This form is capable of stabilising
+the ideal inverted pendulum, and indeed proved sufficient to stabilise the 2D
+system.
+
+However, the linear controller cannot generate the correct turning command as
+shown in Figure~\ref{fig:xor}---this is equivalent to the XOR problem, and can
+be solved by using a quadratic controller. This takes the form:
+\[
+  g_i(\boldsymbol{q}[n]) = p_i + \sum_{j=1}^D w_{i,j} q_j[n] +
+    \sum_{j=1}^D \sum_{k=j}^D h_{i,j,k} q_j[n] q_k[n]
+\]
+  
+\begin{figure}[htbp]
+  \begin{center}
+    \includegraphics[width=8cm]{figures/xor.pdf}
+    \end{center}
+    \caption{Correct turning command in unicycle-centred coordinates}
+    \label{fig:xor}
+    \end{figure}
+
+It was found that the controllers performed significantly better when using
+$\boldsymbol{q}_2[n]$ as input, instead of $\boldsymbol{q}[n]$. To understand
+this, consider the effect with a linear policy: the controller for the
+augmented state is equivalent to a combination of a two-tap FIR filter and a
+first-order IIR filter on the original state:
+\begin{IEEEeqnarray*}{rCl}
+  \boldsymbol{u}[n] &=& 
+  \boldsymbol{g}(\boldsymbol{q}_2[n]) = \boldsymbol{W} \boldsymbol{q}_2[n] \\
+   &=& \boldsymbol{W}_1 \boldsymbol{q}[n-1] + \boldsymbol{W}_2
+   \boldsymbol{u}[n-1] + \boldsymbol{W}_3 \boldsymbol{q}[n]
+  \end{IEEEeqnarray*}
+
+This allows the RMLC system to create basic low or high-pass filters in
+the controller, and this additional freedom improved the subjective quality of
+the controllers trained.
+
+\begin{itemize}
+  \item GPR implementation (choice of covariance function, sparse
+    approximations, etc.)
+  \item contents of the state vector
+  \item form of the controller (e.g. linear:
+    $\boldsymbol{g}(\boldsymbol{q}[n]) =
+    \boldsymbol{w}^\textrm{T}\boldsymbol{q}[n]$)
+  \item loss function
+  \item timestep for conversion to discrete time
+    \end{itemize}
 
 \section{Apparatus and Experimental Results}
 
