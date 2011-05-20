@@ -174,7 +174,7 @@ Controller Optimisation'', in Figure~\ref{fig:rmlc_flowchart}, and is referred
 to as \textbf{training} a controller.
 
 Once a optimal controller has been trained on the simulated system, a
-\textbf{rollout} is performed on the real system (``Real World Testing'' in
+\textbf{trial} is performed on the real system (``Real World Testing'' in
 Figure~\ref{fig:rmlc_flowchart}). This generates a log of states and control
 inputs, which can be converted into more samples of $\boldsymbol{f}$,
 improving the quality of the dynamics model and allowing a better controller
@@ -362,7 +362,216 @@ low-pass effect of the system, reducing the effect of noise. However,
 upgrading the sensors didn't seem to change this, so there is possibly another
 cause.
 
-\section{Hardware}
+\section{Hardware and Software}
+
+When the project started, some of the requirements were already clear, as a
+result of the previous work on the unicycle. As such, extensive changes to the
+hardware and a complete rewrite of the controller software were required to
+fix issues that had been turned up by the previous year's work, and to prepare
+it for 3D balance. A brief summary of the changes is below, followed by
+greater detail where necessary.
+
+\begin{itemize}
+
+  \item The cumbersome FPGA-based controller used previously was replaced with
+    an Arduino microcontroller, allowing changes to be made faster and more
+    easily.
+
+  \item Older gyroscopes and very noisy angle sensors were replaced by modern
+    MEMS gyroscopes and accelerometers.
+
+  \item Algorithms for keeping track of angle and position in 3D were written.
+
+  \item A new motor controller was built for the flywheel, as well as a
+    quadrature encoder for speed sensing.
+
+  \item A sensor for the battery voltage was added, to ensure it could supply
+    sufficient power to the motors.
+
+  \item We designed and tested a number of methods of protecting the unicycle
+    from falling, while allowing 3D movement.
+
+  \item Some faults were identified and could not be fixed, so tests and
+    error-checking were added to ensure these did not corrupt the data.
+
+  \item To improve safety, the motor is disabled when a user presses a switch
+    on the chassis or when the unicycle nears the ground.
+
+\end{itemize}
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[width=15cm]{figures/hardware.pdf}
+    \end{center}
+    \caption{Summary of changes to unicycle hardware}
+    \label{fig:hardware}
+    \end{figure}
+
+\subsection{Sensing}
+
+\subsubsection{Angle Sensing}
+
+The unicycle had previously used a MEMS rate gyroscope and a pair
+of infra-red distance sensors to keep track of its angle. However, these were
+reported to be extremely noisy, and were blamed for a large part of the poor
+performance of the previous system. Our supervisor had already purchased the
+ITG-3200, a 3-axis MEMS rate gyroscope with in-built temperature compensation
+and low-pass filtering. We later purchased an ADXL345, a 3-axis MEMS
+accelerometer, to determine the absolute angle of the unicycle.
+
+The ITG-3200 rate gyro determines the angular velocity of the chip (and thus
+the unicycle) around each of its 3 axes. These values are offset by some
+unknown bias - this is determined before the trial by averaging the output
+when stationary, and is assumed to be approximately constant during a trial.
+They can then be converted to radians per second with a calibration factor
+from the datasheet \cite{ref:itg3200}.
+
+To keep track of the absolute angle, these angular velocities must be
+integrated. There are 3 possible ways to keep track of rotations in 3D, of
+which unit quaternions were chosen as best suited to the project.
+
+\begin{description}
+  \item[Euler angles]
+    These are the yaw, roll and pitch angles shown in
+    Figure~\ref{fig:unicycle_angles}. They are required for the controller,
+    and so other forms must be converted to them. However, they suffer from
+    gimbal lock---in certain positions, it is impossible to represent a
+    small rotation with a small change in the Euler angles. They also require
+    trigonometric functions in the integration loop: a problem for fast
+    integration on embedded platforms.
+
+  \item[Direction Cosine Matrices (DCMs)]
+    A DCM is an orthonormal rotation matrix, representing the rotation from
+    the global coordinate system to the body's coordinate system. They require
+    only basic linear algebra to understand. However, when errors in
+    integration accumulate, the matrix will no longer be orthonormal, and
+    there is no clear way to fix this.
+
+  \item[Unit quaternions]
+    Quaternions extend the complex numbers into 3D. Just as a complex number
+    of unit magnitude can represent a rotation in the 2D plane, a quaternion
+    of unit magnitude can represent a rotation in 3D. Although they may appear
+    confusing, they have the tightest integration loop, do not suffer from
+    gimbal lock and can be normalised by simply dividing by the magnitude.
+
+    \end{description}
+
+
+\paragraph{Quaternion Integration}
+Given the unit quaternion representing a rotation from the global coordinate
+system to that of the unicycle, $\boldsymbol{q}[n] = q_w + q_x
+\boldsymbol{i} + q_y \boldsymbol{j} + q_z \boldsymbol{k}$, and rate gyro
+outputs $\omega_x$, $\omega_y$ and $\omega_z$, we can integrate
+the angular velocities with $\boldsymbol{q}[n+1] = \boldsymbol{q}[n] \left(1 +
+\frac{\omega_x \Delta t}{2} \boldsymbol{i} + 
+\frac{\omega_y \Delta t}{2} \boldsymbol{j} + 
+\frac{\omega_z \Delta t}{2} \boldsymbol{k}\right)$. For more details on this,
+see \cite{ref:quaternions}.
+
+\paragraph{Euler Angles of a Quaternion}
+Unfortunately, the mechanical analysis of Forster (and thus the simulation of
+the ideal unicycle) uses a different angle convention to all other sources
+located. We chose to continue with this convention, and so the expressions for
+converting a quaternion to Euler angles had to be rederived. Using a
+convention of yaw around the vertical $y$-axis, roll around the forward
+$x$-axis and pitch around the sideways $z$-axis (the axes of the mounted
+gyroscope) we get:
+\begin{IEEEeqnarray*}{rCl}
+  \phi &=&  \tan^{-1}\left(\frac{2q_xq_y +
+  2q_yq_w}{-q_x^2-q_y^2+q_z^2+q_w^2}\right) \\
+  \theta &=&  \sin^{-1}\left(2q_wq_x - 2q_yq_z\right) \\
+  \psi_f &=&  \tan^{-1}\left(\frac{2q_xq_y + 2q_zq_w}{-q_x^2+q_y^2-q_z^2+q_w^2}
+  \right)\\
+  \end{IEEEeqnarray*}
+
+\paragraph{Angular Velocities}
+To calculate the angular rates, $\dot{\phi}$, $\dot{\theta}$ and
+$\dot{\psi}_f$, we convert the quaternion to a DCM, and then apply expressions
+for the derivatives of the Euler angles of a DCM. This could cause a division
+by zero in a gimbal lock situation, but fortunately the unicycle never reaches
+such positions.
+\begin{IEEEeqnarray*}{rCl}
+  \left[\begin{array}{lll}
+    d_{11} & d_{12} & d_{13} \\
+    d_{21} & d_{22} & d_{23} \\
+    d_{31} & d_{32} & d_{33} \\
+    \end{array}\right] &=&
+  \left[\begin{array}{lll}
+    1-2q_y^2-2q_z^2 & 2q_xq_y-2q_zq_w & 2q_xq_z+2q_yq_w \\
+    2q_xq_y+2q_zq_w & 1-2q_x^2-2q_z^2 & 2q_yq_z-2q_xq_w \\
+    2q_xq_z-2q_yq_w & 2q_yq_z+2q_xq_w & 1-2q_x^2-2q_y^2 \\
+    \end{array}\right] \\
+  \dot{\phi} &=& \frac{(d_{12}d_{32}-d_{12}d_{33})\omega_x +
+    (d_{11}d_{33}-d_{13}d_{31})\omega_y}{d_{13}^2 + d_{33}^2} \\
+  \dot{\theta} &=& \frac{d_{22} \omega_x - d_{21}
+    \omega_y}{\sqrt{1-d_{23}^2}} \\
+  \dot{\psi}_f &=& -\frac{d_{23}(d_{21}\omega_x + d_{22}\omega_y)}{d_{21}^2 +
+    d_{22}^2} + \omega_z
+  \end{IEEEeqnarray*}
+
+\paragraph{Initial Angle}
+To determine the initial angle of the unicycle, we take an average
+accelerometer reading while the unicycle is initially stable. This is a 3D
+vector, representing the direction of gravity in the reference frame of the
+rotated unicycle. By considering the DCM resulting from rotations in pitch and
+roll, we can determine the pitch and roll angles, and use these to construct
+an initial rotation quaternion.
+\begin{IEEEeqnarray*}{rCl}
+  \boldsymbol{D} &=&  \left[\begin{array}{lll}
+    \cos \psi_f & -\sin\psi_f & 0 \\
+    \cos \theta \sin \psi_f & \cos \theta \cos \psi_f & -\sin \theta \\
+    \sin \theta \sin \psi_f & \sin \theta \cos \psi_f & \cos \theta 
+    \end{array}\right] \\
+  \left[\begin{array}{l}
+    a_x \\ a_y \\ a_z
+    \end{array}\right] &=& 
+    \left[\begin{array}{l}
+      \cos \theta \sin \psi_f \\ \cos \theta \cos \psi_f \\ -\sin \theta
+      \end{array}\right]\\
+  \theta &=&  -\sin^{-1}(a_z) \\
+  \psi_f &=&  \tan^{-1}\left(\frac{a_x}{a_y}\right) \\
+  \boldsymbol{q} &=&  \left(\cos\left(\frac{\theta}{2}\right) +
+  \boldsymbol{i}\sin\left(\frac{\theta}{2}\right)\right)
+  \left(\cos\left(\frac{\psi_f}{2}\right) +
+  \boldsymbol{k}\sin\left(\frac{\psi_f}{2}\right)\right)
+  \end{IEEEeqnarray*}
+
+\paragraph{Gyro Noise and Drift}
+The approach described above is vulnerable to drift: accumulating errors in
+the integration of the gyroscope, especially when the zero-offset of the
+gyroscope changes. To evaluate the effect of this, the gyro was sampled for 10
+seconds when stationary. The rate readings are shown in
+Figure~\ref{fig:gyro_stat}. It is clear that the noise and drift are on the
+same order of magnitude, over a 10 second trial, the zero-offset changed by
+about 0.1 deg s$^{-1}$, leading to a drift of below 1$^\circ$. This was judged
+as acceptable.  If we wished to conduct longer trials, we could use one of a
+variety of fusion methods such as state observers, Kalman filters, or one of
+many highly tuned implementations developed by UAV hobbyists
+\cite{ref:gluonpilot}.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[width=13cm]{figures/gyro_stat.pdf}
+    \end{center}
+    \caption{Gyro readings when stationary}
+    \label{fig:gyro_stat}
+    \end{figure}
+
+\paragraph{Accelerometer Noise}
+Figure~\ref{fig:acc_stat} shows the accelerometer noise when stationary (the
+mean reading has been subtracted). (Note that the noise characteristic is very
+different for one axis compared to the other 2 - this is because this axis is
+perpendicular to the chip, and is built differently.) This corresponds to
+noise standard deviations for pitch and roll of about 0.5$^\circ$, but this
+can be reduced by averaging many readings.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[height=7cm]{figures/acc_stat.pdf}
+    \end{center}
+    \caption{Accelerometer readings when stationary}
+    \label{fig:acc_stat}
+    \end{figure}
 
 \section{Results and Discussion}
 
