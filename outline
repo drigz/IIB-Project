@@ -12,19 +12,22 @@ Hardware and Software
 - summary of changes made
 -- Arduino
 -- gyro & accelerometer + I2C level converter
--- cutoff switches and power switch
--- fall protection
+-- angle, position & speed sensing
+-- flywheel stuff
 -- voltage sensing
-
-- fall protection
--- skirt design
--- analysis of spin speed
--- reduced weight skirt failed, replaced with rope system
+-- fall protection
+-- error testing
+-- cutoff switches and power switch
 
 - sensing
 -- description of MEMS gyros & accelerometers, noise levels and maths used
 -- description of shaft encoders and speed sensing algorithm
 -- description of self-centred position integration
+
+- fall protection
+-- skirt design
+-- analysis of spin speed
+-- reduced weight skirt failed, replaced with rope system
 
 - reliability (or lack thereof)
 -- HW self-test
