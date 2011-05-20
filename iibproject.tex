@@ -10,6 +10,7 @@
 \usepackage{url}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{multirow}
+\usepackage{import}
 
 \usepackage[retainorgcmds]{IEEEtrantools}
 
@@ -20,6 +21,7 @@
 \DeclareMathOperator*{\argmin}{arg\,min}
 
 \usepackage{graphicx,ctable,booktabs}
+\graphicspath{{figures/}}
 
 \pagestyle{empty}
 \onehalfspacing
@@ -572,6 +574,52 @@ can be reduced by averaging many readings.
     \caption{Accelerometer readings when stationary}
     \label{fig:acc_stat}
     \end{figure}
+
+\subsubsection{Position Sensing}
+
+In order to reduce the number of state variable necessary, Rasmussen used
+self-centred coordinates to keep track of the position of the target. In
+these coordinates, the unicycle is at (0, 0) and faces along the positive
+$x$-axis, as shown in Figure~\ref{fig:xor}. At each timestep, we must use the
+change in yaw angle $\Delta\phi$ and the change in wheel angle
+$\Delta\psi_w$ (along with wheel radius $r_w$) to calculate the new target
+position. From Figure~\ref{fig:scc} we can see that $x_c$ and $y_c$ must be
+modified as follows:
+
+\[
+\begin{bmatrix}
+  x_c[n+1] \\
+  y_c[n+1]
+\end{bmatrix} =
+\begin{bmatrix}
+  \cos(-\Delta\phi) & -\sin(-\Delta\phi) \\
+  \sin(-\Delta\phi) & \cos(-\Delta\phi)
+\end{bmatrix}
+\begin{bmatrix}
+  x_c[n] \\
+  y_c[n]
+\end{bmatrix} +
+\begin{bmatrix}
+  0 \\ -r_w\Delta \psi_f
+\end{bmatrix}
+\]
+
+\begin{figure}[htpb]
+  \begin{center}
+    \def\svgwidth{15cm}
+    \input{figures/scc.pdf_tex}
+    \end{center}
+    \caption{Effect of unicycle movement on target position in self-centred
+    coordinates}
+    \label{fig:scc}
+    \end{figure}
+
+The shaft encoder used to detect wheel angle changes has a quantisation error
+of around 1mm. The buildup in yaw error over the trial should be less than
+1$^\circ$, so when the distance from the target is around 1m, we can expect
+errors of around $1\textrm{mm} + 1^\circ \cdot \frac{\pi}{180} \cdot
+1\textrm{m} \approx 2$cm.  This should be more than accurate enough for the
+application.
 
 \section{Results and Discussion}
 
