@@ -621,6 +621,48 @@ errors of around $1\textrm{mm} + 1^\circ \cdot \frac{\pi}{180} \cdot
 1\textrm{m} \approx 2$cm.  This should be more than accurate enough for the
 application.
 
+\subsubsection{Wheel Speed Sensing}
+
+When we started the project, a quadrature encoder was being used to measure
+the position and speed of the wheel. This is a digital sensor, which generates
+a pulse every time the wheel moves through $\frac{1}{512}$ of a revolution.
+Merely counting these pulses gives extremely good measurements of position
+(accurate to around 1mm) but it is harder to measure speed. The approach being
+used previously was to measure the number of pulses in 40ms, but this leads to
+a quantisation error of 25 pulses per second, or 2.5cm s$^{-1}$.
+
+(TODO: explain how shaft encoders track position? Refer to Alan's report?)
+
+An alternative method is to measure the amount of time between the last two
+pulses, but at high speeds this time may be very short, and this time may be
+hard to measure accurately.
+
+This became more important when we added a quadrature encoder for the
+flywheel: the sensors used are much less accurate than those on the wheel.
+There are only 72 pulses per revolution, and there is significant
+non-uniformity around the wheel. This means that the first method would have a
+quantisation error of 125$^\circ/$s, and the second method would only be
+accurate to within around 50\%. This is unacceptable accuracy.
+
+After reading a comparative analysis of various methods \cite{ref:encspeed},
+we decided on a method that combines the benefits of the two approaches above.
+It adapts the size of the 40ms window to contain an integer number of pulses,
+eliminating quantisation error. At high speeds, it is similar to the first
+scheme, considering the length of many pulses to reduce the effect on
+non-uniformity and timing errors. At sufficiently low speeds, it adapts to
+only using the most recent pulse, avoiding quantisation error.
+Figure~\ref{fig:encoder_speed} explains how it works---note that some thought
+is required about what should be returned when no pulses are observed in the
+window.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[width=15cm]{encoder_speed.pdf}
+    \end{center}
+    \caption{Adaptive-window encoder speed measurement}
+    \label{fig:encoder_speed}
+    \end{figure}
+
 \section{Results and Discussion}
 
 \section{Conclusions}
