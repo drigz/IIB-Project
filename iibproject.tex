@@ -631,7 +631,8 @@ Merely counting these pulses gives extremely good measurements of position
 used previously was to measure the number of pulses in 40ms, but this leads to
 a quantisation error of 25 pulses per second, or 2.5cm s$^{-1}$.
 
-(TODO: explain how shaft encoders track position? Refer to Alan's report?)
+More details on how the quadrature encoders are used to sense position can be
+found in Douglass's report \nocite{ref:douglass}.
 
 An alternative method is to measure the amount of time between the last two
 pulses, but at high speeds this time may be very short, and this time may be
@@ -662,6 +663,314 @@ window.
     \caption{Adaptive-window encoder speed measurement}
     \label{fig:encoder_speed}
     \end{figure}
+
+\subsection{Fall Protection}
+
+Due to the trial-and-error nature of the RMLC method, the unicycle must be
+able to survive using a controller that may be worse than none at all. When
+the dynamics model is inaccurate, it may choose a controller than throws the
+30kg unicycle towards the ground with all the force of a 240W motor.
+Figure~\ref{fig:alu_bar} shows the effect of repeated trials on the aluminium
+bar used in the previous year.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[width=15cm]{alu_bar.jpg}
+    \end{center}
+    \caption{Damaged aluminium box section from previous year's testing}
+    \label{fig:alu_bar}
+    \end{figure}
+
+Two approaches had been used previously: suspending the unicycle from a crane
+in the Structures Lab, and equipping the unicycle with a support structure
+that hits the ground and stops the fall before it becomes dangerous.
+Suspending the unicycle limits its range of motion, as if it travels too far
+the rope will pull it over, as shown in Figure~\ref{fig:suspended}.
+
+We suspected that the ability to travel freely would be important for the
+unicycle, since if an RMLC system is unable to experience control policies
+that travel a long way, the dynamics model will never learn that this can
+happen and that it should try to avoid it. As such, we chose to build a wooden
+skirt which would travel with the unicycle and protect it from falling, as
+shown in Figure~\ref{fig:skirt}.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \subfigure[Wooden skirt]{
+      \includegraphics[height=6cm]{skirt.jpg}
+      \label{fig:skirt}
+    }
+    \subfigure[Suspended unicycle]{
+      \includegraphics[height=6cm]{suspended.pdf}
+      \label{fig:suspended}
+    }
+    \end{center}
+    \caption{Unicycle fall protection methods}
+    \label{fig:fall_protection}
+    \end{figure}
+
+\subsection{Inability to Spin}
+
+After building the skirt and preparing the necessary hardware and software, we
+started training the unicycle. However, it made very little progress, and
+would consistently seem to fall to the side, without turning in that direction
+and driving forwards to pick itself up. We tried modifying the controller to
+send the maximum motor command to the flywheel at all times, and found that it
+could only turn around 30$^\circ$ before falling.
+
+It is very important that the robot be able to turn sufficiently fast to be
+able to point in the direction in which it is falling, before it has fallen.
+We considered various possible causes for the slow turning:
+
+\begin{itemize}
+  \item Adding the skirt had increased the moment of inertia, making it spin
+    slowly.
+  \item Friction with the ground was causing it to turn too slowly.
+  \item The gear ratio for the flywheel was chosen badly.
+  \item The flywheel had insufficient moment of inertia to turn the robot fast
+    enough, even without the above effects.
+  \item The flywheel motor was insufficiently powerful, even without the above
+    effects.
+    \end{itemize}
+
+To try to quantise this, we suspended the robot above the ground, and tested
+the response of the system to a step increase in flywheel command. We then
+used a mathematical model to quantify how changing various variables would
+affect the spin speed.
+
+\subsubsection{Spin Analysis}
+
+The response of a DC motor can be well modelled as \cite{ref:6302}:
+
+\begin{equation*}
+  \frac{\Omega_\textrm{motor}(s)}{V(s)} = \frac{K_t}{(R+Ls)(Js+b)+K_t^2}
+  \end{equation*}
+
+where we define
+
+\begin{description}
+  \item[$\omega$] Speed of motor shaft
+  \item[$V$] Motor input voltage
+  \item[$K_t$] Motor torque constant
+  \item[$R$] Motor armature resistance
+  \item[$L$] Motor armature inductance (usually negligible)
+  \item[$J$] Moment of inertia of object on motor shaft
+  \item[$b$] Damping on motor shaft (sometimes negligible)
+    \end{description}
+
+The effect of the gear train is analogous to that of a transformer: the
+flywheel MoI, $J_f$ appears to the motor as an MoI of $J = \frac{J_f}{n^2}$.
+More obviously, it has the effect that $\omega_\textrm{flywheel} =
+\frac{\omega_\textrm{motor}}{n}$.
+
+So, neglecting $L$ and $b$, we have:
+\begin{IEEEeqnarray*}{rCl}
+  \frac{\Omega_\textrm{flywheel}(s)}{V(s)} &=& 
+     \frac{K_t}{R \frac{J_f}{n^2} s+K_t^2} \\
+    &=& n^{-1} K_t^{-1} \frac{1}{\frac{R J_f}{n^2 K_t^2} s + 1} \\
+  \end{IEEEeqnarray*}
+
+The corresponding step response is of the form:
+\[
+  \omega_\textrm{flywheel}(t) = K (1 - e^{-\frac{t}{\tau}})
+\]
+
+Fitting this to the observed step response, as in Figure~\ref{fig:step}, tells
+us that $K = 33$ and $\tau = 0.55$ seconds.
+
+If we integrate to get the flywheel angle, and then assume that there are no
+external torques on the robot and that the robot has MoI $J_r$:
+\begin{IEEEeqnarray*}{rCl}
+  \omega_\textrm{flywheel}(t) &=& K (1 - e^{-\frac{t}{\tau}}) \\
+  \theta_\textrm{flywheel}(t) &=& K (t + \tau (e^{-\frac{t}{\tau}} - 1)) \\
+  \theta_\textrm{robot}(t) &=& \frac{J_f}{J_r} K (t + \tau (e^{-\frac{t}{\tau}} - 1)) \\
+  \end{IEEEeqnarray*}
+
+\begin{figure}[htbp]
+  \begin{center}
+    \subfigure[Flywheel speed]{
+      \includegraphics[height=6cm]{step.pdf}
+      \label{fig:step}
+    }
+    \subfigure[Robot angle]{
+      \includegraphics[height=6cm]{step_angle.pdf}
+      \label{fig:step_angle}
+    }
+    \end{center}
+    \caption{Response to step in flywheel command}
+    \end{figure}
+
+By fitting (see Figure~\ref{fig:step_angle}) we get $\frac{J_r}{J_f} = 13$
+(including the skirt). As the angle increased, the rope supporting the
+unicycle twisted, slowing the robot's spin, but the initial fit is good.  We
+can now solve for the time to turn 90$^\circ$. This model predicts a turn time
+of 1.1 seconds for the suspended robot: this is far too slow, and so clearly
+contact with the ground is not entirely to blame---we must look elsewhere to
+solve the problem.
+
+We can check the observed value of $\frac{J_r}{J_f}$ by estimating the moments
+of inertia. Modelling the flywheel as a uniform disc of mass 8kg, the robot as
+a uniform cuboid of mass 24kg, and the skirt as mass concentrated at 55cm (the
+ring) and 40cm (the struts) from the body:
+\begin{IEEEeqnarray*}{rCl}
+  J_f &=& \frac{1}{2}M R^2
+    = \frac{1}{2} \cdot 8 \cdot (0.2)^2 \\
+    &=&  0.16 \textrm{ kg m}^2 \\
+  J_r &=& \frac{1}{12}M L^2
+    = \frac{1}{12} \cdot 24 \cdot (0.4)^2\\
+    &=&  0.32\textrm{ kg m}^2 \\
+  \textrm{mass of skirt} &=& 4.4 \textrm{ kg} \\
+  \textrm{mass of structs} &=& 3.5 \textrm{ kg} \\
+  J_\textrm{skirt} &=& 3.5 \cdot 0.4^2 + 4.4 \cdot 0.55^2 \\
+    &=&  1.89 \textrm{ kg m}^2\\
+  \frac{J_r}{J_f} &=& 2\\
+  \frac{J_r + J_\textrm{skirt}}{J_f} &=& 13.8\\
+  \end{IEEEeqnarray*}
+
+This backs up the result of the previous analysis, which suggested $\frac{J_r
++ J_\textrm{skirt}}{J_f} = 13$. With this model, we can predict the effect on
+the turn time of various changes to the suspended
+robot---Table~\ref{tab:turn_time} shows various possibilities, and makes it
+clear that reducing or removing the skirt is most valuable improvement to
+make.
+
+\begin{table}[htbp]
+  \centering
+    \begin{tabular}{l l l | l}
+
+      gear ratio & flywheel MoI & robot MoI & turn time \\
+      \hline
+      1x & 1x & 1x & 1.09s \\
+      1x & 2x & 1x & 0.94s \\
+      1.6x (optimum) & 2x & 1x & 0.87s \\
+      1x & 10x & 1x & 0.85s \\
+      4.8x (optimum) & 10x & 1x & 0.51s \\
+      1x & 1x & $\frac{3.6}{13}$x (lightweight skirt) & 0.50s \\
+      1x & 1x & $\frac{2}{13}$x (removed skirt) & 0.36s \\
+
+    \end{tabular}
+    \label{tab:turn_time}
+    \caption{Ideal turn time under various conditions}
+    \end{table}
+
+\subsubsection{Solving the Spin Problem}
+
+Having realised this, we redesigned the skirt to reduce its MoI. We reduced
+the width of the rim from 12cm to 2cm, and replaced the wooden struts with
+aluminium members. This reduced the MoI of the skirt by a factor of 7x, and
+could still support the weight of the unicycle. However, after a few falls,
+the wood had started to crack and one of the aluminium struts broke at the
+joint. Despite reinforcing the wood with glue and aluminium struts, we were
+unable to reach a design for the skirt that was both sturdy and light.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[width=7cm]{light_skirt.jpg}
+    \end{center}
+    \caption{Reduced-weight skirt}
+    \label{fig:light_skirt}
+    \end{figure}
+
+Eventually, we chose to use a rope tied to the mezzanine in the foyer of the
+Engineering department. This is a very busy area, and so testing can only be
+done outside of the department's normal opening hours, but at least the
+problematic effects of the skirt are completely removed.
+
+\subsection{Known Issues}
+
+Throughout the design process we found some problems with the unicycle's
+hardware and software that we were unable to fix. When this occurred, we did
+our best to stop them from interfering with the testing process.
+
+\subsubsection{Toothed Belt}
+
+The robot uses a toothed belt to transfer torque to the wheel, shown in
+Figure~\ref{fig:fan_belt}. During tests, it would frequently slip when the
+controller demanded large changes in motor velocity. This leads to a mismatch
+between the encoder reading at the actual position, which would cause great
+problems for the dynamic model. As such, it was critical to make sure that we
+observed carefully for trials in which the belt slipped, and removed the
+corrupted data from the logs. Towards the end of the testing process, we
+installed an extra strut, also shown in Figure~\ref{fig:fan_belt} to maintain
+tension in the belt.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[width=6cm]{fan_belt.jpg}
+    \end{center}
+    \caption{Toothed belt and tensioning strut}
+    \label{fig:fan_belt}
+    \end{figure}
+
+\subsubsection{Motor Control}
+
+Unpredictably, one or both of the motors would fail move at all. This proved
+extremely hard to debug, since sometimes even touching the circuit with a
+single probe of a voltmeter would cause them to start working again. At one
+time, we were able to investigate the problem with an oscilloscope---it
+appeared that the inputs to the motor controller were behaving correctly, and
+that while the PWM input went through to the output, both terminals of the
+motor were driven with exactly the same PWM signal, with no potential
+difference across the motor.
+
+The cause of this is unknown, but likely an electrical problem due to the
+unpredictable behaviour and sensitivity to contact from the voltmeter probe.
+Because we were unable to prevent it from happening, we modified the software
+to test both motors before every trial. This allowed us to power cycle the
+system to avoid the problem.
+
+\subsubsection{Flywheel Encoder}
+
+The flywheel encoder is prone to generating spurious pulses---these can
+manifest as sudden changes in direction, which are perceived as sudden stops
+by the speed-sensing algorithm described earlier.
+Figure~\ref{fig:bad_fly_speed} shows the effect of these spurious
+transmissions---clearly extremely severe, and very problematic for the dynamic
+model to predict.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[height=7cm]{bad_fly_speed.pdf}
+    \end{center}
+    \caption{Corrupted flywheel speed measurements}
+    \label{fig:bad_fly_speed}
+    \end{figure}
+
+As described in Douglass's report, the flywheel encoder uses Schmitt triggers
+to digitise the analog encoder outputs. Figure~\ref{fig:scope_trace} shows a
+trace of the input and output to this signal cleaning circuit (the two traces
+have been traced in an image editor for clarity). There appears to be a
+negative spike in the signal, part-way through the high cycle.  This is due to
+interference between the two quadrature sensors (covering one emitter removed
+the spike). Unfortunately, the low hysteresis voltage on the model of Schmitt
+trigger used (0.4V min., 0.7V typ.) means that this is enough to reach the
+threshold and cause problems. The extent of this problem was limited slightly
+by placing a larger piece of cardboard between the two sensors.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[width=13cm]{scope_trace.pdf}
+    \end{center}
+    \caption{Oscilloscope trace of flywheel encoder outputs}
+    \label{fig:scope_trace}
+    \end{figure}
+
+The other problem visible is that the range of the analog signal is not 0--5V,
+but around 0--3.4V. This is because the photodiode in the sensor is not fully
+conducting when pointed at a white part of the pattern. To ensure that the
+Schmitt trigger acted properly, we reduced its supply voltage to 3.3V. While
+this meant that the input exceeded the supply voltage, and that the high-level
+output was 3.3V, yet the AVR (the processor on the Arduino) operates on 5V,
+both the Schmitt trigger \cite{ref:4093} and the AVR's \cite{ref:atmega}
+datasheets stated that these were acceptable. This does have the effect of
+further reducing the hysteresis voltage, but combined with the added
+occlusion, it helped control the problem.
+
+Despite these changes, the problem is still very sensitive to the orientation
+of the sensors, and the shocks undergone during trials can cause it to
+resurface. To avoid this, we adapted the software to try to test for this
+problem before every trial, and we carefully inspected the logs after the
+trials, in an attempt to detect signs of corrupted data.
 
 \section{Results and Discussion}
 
