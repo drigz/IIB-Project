@@ -988,7 +988,26 @@ resurface. To avoid this, we adapted the software to try to test for this
 problem before every trial, and we carefully inspected the logs after the
 trials, in an attempt to detect signs of corrupted data.
 
-\section{Results and Discussion}
+
+\subsubsection{I$^2$C Communications}
+
+The ITG-3200 and ADXL345 both reside on the same I$^2$C bus, a digital
+communications protocol that allows the Arduino to read and write data to its
+peripherals. We chose to use the I$^2$C driver provided by the Arduino
+project, which served us well initially. However, we found that occasionally,
+and unpredictably, the Arduino would stop responding. We narrowed this down to
+an infinite loop in the I$^2$C driver, waiting for a response from the
+ADXL345.
+
+We were unable to identify or remove the cause of this problem, which could be
+anything from a race-condition in the software to damage to one of the
+involved ICs (soldering mistakes led to a number of short circuits and
+over-volting of the ICs during the development process). Fortunately, the
+problem occurred reasonably rarely, so we chose to implement timeouts in the
+I$^2$C driver. Whenever one of these timeouts occurs, the error is
+signalled, and the data can be discarded.
+
+\section{Results of Learning}
 
 \section{Conclusions}
 
