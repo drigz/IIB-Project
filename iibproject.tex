@@ -228,6 +228,7 @@ scales - if a variable is not useful for predicting, the ML length scale will
 tend to $\inf$.
 
 \subsubsection{Choice of State Vector}
+\label{sec:state_vector}
 
 The state vector $\boldsymbol{q}[n]$ should be chosen to ensure that the
 future states are a function only of the current state, and current and future
@@ -320,6 +321,28 @@ first-order IIR filter on the original state:
 This allows the RMLC system to create basic low or high-pass filters in
 the controller, and this additional freedom improved the subjective quality of
 the controllers trained.
+
+\subsubsection{Gathering Initial Data}
+
+In order to train a controller, some experience of the system is required. The
+way this has been done before is with \textbf{random trials}: the system
+inputs are chosen randomly, and the response is recorded.
+Rasmussen chose to use independent and identically distributed (IID) motor
+commands when stabilising the ideal unicycle. McHutchon chose to use a
+controller with randomly chosen weights.
+
+We initially chose to use IID motor commands, chosen uniformly from the full
+range. However, the dynamics model could not model the resulting data well. We
+suspect that the same problems that mean that modelling the system as Markov
+order 2 (described in Section~\ref{sec:state_vector}) mean that if the motor
+command changes radically between cycles, the behaviour is very unpredictable.
+Since the dynamics model cannot model signal-dependent noise well, these
+datapoints cause a very uncertain model to be learnt.
+
+We solved this problem by low-pass filtering the random motor commands: this prevents
+sudden changes in the motor command, while providing a wider survey of
+the space than a random controller, and avoiding the risk of large positive
+feedback.
 
 \subsubsection{Loss Function}
 
@@ -1008,6 +1031,8 @@ I$^2$C driver. Whenever one of these timeouts occurs, the error is
 signalled, and the data can be discarded.
 
 \section{Results of Learning}
+
+
 
 \section{Conclusions}
 
