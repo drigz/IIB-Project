@@ -26,6 +26,8 @@
 \pagestyle{empty}
 \onehalfspacing
 
+
+
 \begin{document}
 
 % Title Page
@@ -195,7 +197,10 @@ inputs, which can be converted into more samples of $\boldsymbol{f}$,
 improving the quality of the dynamics model and allowing a better controller
 to be trained. This process is repeated iteratively until the dynamics model
 is sufficiently accurate that the trained controllers perform well on the real
-system.
+system. This process of gathering initial data (see
+Section~\ref{sec:random_trials}) and then iterating between training a new
+controller and gathering data with it, continuing until steady-state is
+reached, is referred to as a training \textbf{sequence}.
 
 \subsection{Practical Concerns}
 
@@ -205,6 +210,9 @@ Forster's analytical model of the unicycle to simulate it, and used RMLC to
 train a controller for this ideal unicycle. Thanks to this, and to McHutchon's
 work on the real 2D system, we have a lot of information on which choices can
 work well in these situations, and which are most important.
+
+Some of these decisions were made on the results of various training
+sequences, which are presented in Section~\ref{sec:learning_results}.
 
 \subsubsection{GPR Implementation}
 The GPR system has many configurable parameters, but fortunately the form used
@@ -323,6 +331,7 @@ the controller, and this additional freedom improved the subjective quality of
 the controllers trained.
 
 \subsubsection{Gathering Initial Data}
+\label{sec:random_trials}
 
 In order to train a controller, some experience of the system is required. The
 way this has been done before is with \textbf{random trials}: the system
@@ -345,6 +354,7 @@ the space than a random controller, and avoiding the risk of large positive
 feedback.
 
 \subsubsection{Loss Function}
+\label{sec:loss_function}
 
 The main concerns when choosing a loss function are accurately represent what
 is desired of the controller, and to ensure that different desires are
@@ -380,6 +390,7 @@ strategy is not viable, so it is possible that the yaw \& flywheel rates need
 not be penalised. This was not tested.
 
 \subsubsection{Timestep}
+\label{sec:timestep}
 
 The RMLC approach assumes a discrete-time system - to apply it to a continuous
 time system, it must be discretised. We used a zero-order hold (ZOH) on the
@@ -702,6 +713,7 @@ window.
     \end{figure}
 
 \subsection{Fall Protection}
+\label{sec:fall_protection}
 
 Due to the trial-and-error nature of the RMLC method, the unicycle must be
 able to survive using a controller that may be worse than none at all. When
@@ -1031,8 +1043,119 @@ I$^2$C driver. Whenever one of these timeouts occurs, the error is
 signalled, and the data can be discarded.
 
 \section{Results of Learning}
+\label{sec:learning_results}
 
+After implementing the necessary subset of the new hardware and software, we
+recreated the results of McHutchon's work on the 2D system. This initially
+resulted in failure, and helped us to find bugs in our implementations and to
+understand the RMLC system. After a iterating through a few sequences of
+trial and improvement, we had discovered various techniques that would help us
+stabilise the 3D unicycle. We then removed the training wheels, wrote and
+built the remaining parts of the unicycle and started training the 3D
+unicycle.
 
+\subsection{Learning the 2D System}
+
+McHutchon's report describes the processes that the RMLC system goes
+through when successfully learning to balance the 2D system. Our aim in
+learning the 2D system was to verify that our sensors and controller worked
+correctly, and that we were using the machine learning system appropriately.
+We ran 3 training sequences before deciding to move onto the 3D unicycle.
+
+Due to a calculation error, the first sequence used a loss function that very
+heavily penalised the distance moved (see Section~\ref{sec:loss_function})---a
+movement of 10cm was considered ``as bad as'' an angle of 10$^\circ$. This led
+to a controller which would intentionally fall as fast as possible to stop the
+unicycle dead. Figure~\ref{fig:high_dist_loss} shows the effect of this on the
+trajectory of the rollouts: by the end, the distance moved is consistently
+extremely small. Although the optimal controller would be one that kept both
+distance and angle close to zero, the problem is that intentionally falling is
+a local optimum: initially, it is more attractive to fall than to try to
+balance, and it never gathers any data suggesting that it can balance.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[height=7cm]{high_dist_loss.pdf}
+    \end{center}
+    \caption{Rollouts from the first sequence}
+    \label{fig:high_dist_loss}
+    \end{figure}
+
+The second sequence fixed this error, and as shown in
+Figure~\ref{fig:2nd_sequence}, this sequence successfully generated
+controllers than could balance the unicycle for 15 seconds, with no sign of
+growing instability. However, this is despite the fact that uncertainty the
+prediction grows extremely rapidly. Clearly, the dynamics model has managed to
+capture enough of the dynamics of the real system to allow balancing the
+unicycle, yet is extremely uncertain about its predictions.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[width=13cm]{2nd_sequence.pdf}
+    \end{center}
+    \caption{Sampled predictions and rollouts from 2$^\textrm{nd}$ training
+    sequence}
+    \label{fig:2nd_sequence}
+    \end{figure}
+
+We suspected this was due to the high levels of noise in the sensors. In
+particular, the wheel speed is detected by differentiating the output of a
+digital position sensor, which dramatically amplifies the quantisation
+noise. McHutchon reported that decreasing the timestep
+(Section~\ref{sec:timestep}) help address problems with sensor noise, so we
+started another sequence with the timestep reduced from 100ms to 50ms. This
+produced the controller and prediction shown in
+Figure~\ref{fig:2d_50ms}---much improved, but still inadequate.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \subfigure[50ms timestep]{
+      \includegraphics[height=6cm]{2d_50ms_angle.pdf}
+      \label{fig:2d_50ms}
+    }
+    \subfigure[2$^\textrm{nd}$ order Markov]{
+      \includegraphics[height=6cm]{2d_50ms_angle_history.pdf}
+      \label{fig:2d_hist}
+    }
+    \end{center}
+    \caption{Final predictions of 2D training sequence}
+    \label{fig:2d_predictions}
+    \end{figure}
+
+During trials, we observed the unicycle shaking, and a lot of noise coming
+from the gear-train. We suspected that problems like gear backlash were
+contributing to the poor performance of the system, and so we gave the dynamic
+model access to two consecutive states when predicting (as described in
+Section~\ref{sec:state_vector}). This further improved the confidence of the
+prediction, shown in Figure~\ref{fig:2d_hist} and the quality of the
+controller. Unfortunately, the log data for this trial was lost, but a video
+remains: the unicycle is observed to remain balanced, but to be in a limit
+cycle oscillation, slowly falling one way, before picking itself up and
+returning to slowly falling.
+
+This poor performance of the resulting controller is likely due to the large
+dead-zone in the motor: on a PWM scale from -100\% to 100\%, there is a
+dead-zone from -10\% to 10\%. Figure~\ref{fig:limit_cycle} shows a rollout
+exhibiting stable limit cycle behaviour, along with the motor command and
+dead-zone. The motor command is within the dead zone for quite a significant
+duration of the cycle. There are a number of possibilities for remedying this
+problem, such as manually compensating for the dead-zone, or allowing the RMLC
+system to use non-linear controllers that could learn to compensate for the
+dead-zone. Due to time constraints, however, we accepted the performance as
+satisfactory and moved on to the 3D unicycle.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[height=6cm]{2d_limit_cycle.pdf}
+    \end{center}
+    \caption{Rollout exhibiting limit cycle behaviour}
+    \label{fig:limit_cycle}
+    \end{figure}
+
+\subsection{Learning the 3D Unicycle}
+
+Once all necessary work was complete, we initiated a training sequence for the
+3D unicycle. As detailed in Section~\ref{sec:fall_protection}
 
 \section{Conclusions}
 
