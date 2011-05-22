@@ -624,6 +624,7 @@ accelerometer can be found in Douglass's report.
     \end{figure}
 
 \subsubsection{Position Sensing}
+\label{sec:position_sensing}
 
 In order to reduce the number of state variable necessary, Rasmussen used
 self-centred coordinates to keep track of the position of the target. In
@@ -748,13 +749,17 @@ report.
 \begin{figure}[htpb]
   \begin{center}
     \subfigure[Wooden skirt]{
-      \includegraphics[height=6cm]{skirt.jpg}
+      \includegraphics[height=5cm]{skirt.jpg}
       \label{fig:skirt}
     }
-    \subfigure[Suspended unicycle]{
-      \includegraphics[height=6cm]{suspended.pdf}
+    \subfigure[Movement range]{
+      \includegraphics[height=5cm]{suspended.pdf}
       \label{fig:suspended}
     }
+    \subfigure[Suspended]{
+      \includegraphics[height=5cm]{rope.jpg}
+      \label{fig:rope}
+      }
     \end{center}
     \caption{Unicycle fall protection methods}
     \label{fig:fall_protection}
@@ -971,6 +976,7 @@ to test both motors before every trial. This allowed us to power cycle the
 system to avoid the problem.
 
 \subsubsection{Flywheel Encoder}
+\label{sec:flywheel_encoder}
 
 The flywheel encoder is prone to generating spurious pulses---these can
 manifest as sudden changes in direction, which are perceived as sudden stops
@@ -1067,7 +1073,7 @@ heavily penalised the distance moved (see Section~\ref{sec:loss_function})---a
 movement of 10cm was considered ``as bad as'' an angle of 10$^\circ$. This led
 to a controller which would intentionally fall as fast as possible to stop the
 unicycle dead. Figure~\ref{fig:high_dist_loss} shows the effect of this on the
-trajectory of the rollouts: by the end, the distance moved is consistently
+trajectory of the trials: by the end, the distance moved is consistently
 extremely small. Although the optimal controller would be one that kept both
 distance and angle close to zero, the problem is that intentionally falling is
 a local optimum: initially, it is more attractive to fall than to try to
@@ -1077,23 +1083,25 @@ balance, and it never gathers any data suggesting that it can balance.
   \begin{center}
     \includegraphics[height=7cm]{high_dist_loss.pdf}
     \end{center}
-    \caption{Rollouts from the first sequence}
+    \caption{Trials from the first sequence}
     \label{fig:high_dist_loss}
     \end{figure}
 
 The second sequence fixed this error, and as shown in
 Figure~\ref{fig:2nd_sequence}, this sequence successfully generated
 controllers than could balance the unicycle for 15 seconds, with no sign of
-growing instability. However, this is despite the fact that uncertainty the
-prediction grows extremely rapidly. Clearly, the dynamics model has managed to
-capture enough of the dynamics of the real system to allow balancing the
-unicycle, yet is extremely uncertain about its predictions.
+growing instability. (The blue lines show the prediction: the mean is dashed
+and the 95\% confidence bounds are solid. The red line shows the trial
+result.) However, this is despite the fact that uncertainty the prediction
+grows extremely rapidly. Clearly, the dynamics model has managed to capture
+enough of the dynamics of the real system to allow balancing the unicycle, yet
+is extremely uncertain about its predictions.
 
 \begin{figure}[htpb]
   \begin{center}
     \includegraphics[width=13cm]{2nd_sequence.pdf}
     \end{center}
-    \caption{Sampled predictions and rollouts from 2$^\textrm{nd}$ training
+    \caption{Sampled predictions and trials from 2$^\textrm{nd}$ training
     sequence}
     \label{fig:2nd_sequence}
     \end{figure}
@@ -1135,7 +1143,7 @@ returning to slowly falling.
 
 This poor performance of the resulting controller is likely due to the large
 dead-zone in the motor: on a PWM scale from -100\% to 100\%, there is a
-dead-zone from -10\% to 10\%. Figure~\ref{fig:limit_cycle} shows a rollout
+dead-zone from -10\% to 10\%. Figure~\ref{fig:limit_cycle} shows a trial
 exhibiting stable limit cycle behaviour, along with the motor command and
 dead-zone. The motor command is within the dead zone for quite a significant
 duration of the cycle. There are a number of possibilities for remedying this
@@ -1148,16 +1156,70 @@ satisfactory and moved on to the 3D unicycle.
   \begin{center}
     \includegraphics[height=6cm]{2d_limit_cycle.pdf}
     \end{center}
-    \caption{Rollout exhibiting limit cycle behaviour}
+    \caption{Trial exhibiting limit cycle behaviour}
     \label{fig:limit_cycle}
     \end{figure}
+
+As a sidenote: there is a technique for dealing with motor dead-zones known as
+``dithering'', which involves adding a high-frequency periodic signal to the
+motor command, which will push the motor in and out of its dead-zone. The
+system will filter this rapidly oscillating force out, effectively smoothing
+the dead-zone out. McHutchon observed much better performing controllers for
+the 2D system---ironically, it is possible that the high noise levels of his
+angle sensors had a dithering effect on the motor, improving the performance.
 
 \subsection{Learning the 3D Unicycle}
 
 Once all necessary work was complete, we initiated a training sequence for the
-3D unicycle. As detailed in Section~\ref{sec:fall_protection}
+3D unicycle. As detailed in Section~\ref{sec:fall_protection}, we realised
+that we couldn't use the skirt for fall protection, and decided to suspend the
+unicycle to protect it. We then iterated through a training sequence, and
+observed that the system learned to balance the robot very quickly.
+
+As shown in Figure~\ref{fig:3d_1st_sequence_angle}, though initial trials
+disagreed greatly with the prediction, by the 3$^\textrm{rd}$ trial the system
+was learning to balance in pitch, and the trials start to resemble the
+predictions. By the 5$^\textrm{th}$ trial the unicycle could control both
+pitch and roll, and when the sequence ended after 11 trials, the system could
+confidently predict both roll and pitch angles.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \subfigure[Unicycle angles]{
+      \includegraphics[width=12cm]{3d_1st_sequence_angle.pdf}
+      \label{fig:3d_1st_sequence_angle}
+    }
+    \subfigure[Unicycle position]{
+      \includegraphics[width=12cm]{3d_1st_sequence_dist.pdf}
+      \label{fig:3d_1st_sequence_dist}
+    }
+    \end{center}
+    \caption{1$^\textrm{st}$ sequence of 3D trials}
+    \label{fig:3d_1st_sequence}
+    \end{figure}
+
+However, the length of the trials is limited by the rope: once the unicycle
+travels a certain distance to the side, the rope becomes tight and pull the
+unicycle over, interfering with the dynamics in an unpredictable way. If the
+unicycle is to balance for any length of time it must learn to stay within
+this limited region. Figure~\ref{fig:3d_1st_sequence_dist} shows that the
+unicycle failed to achieve this: by the 11$^\textrm{th}$ controller, the
+dynamics model predicts reliably the position trajectory, but the system is
+unable to keep itself near the centre.
+
+Upon investigation, we realised that there was an error in the position
+representation: the self-centred position integration described in
+Section~\ref{sec:position_sensing} was not being performed properly, and so
+there was no way for the quadratic controller to generate the correct commands
+to return to the origin. We fixed this and proceeded with a second training
+sequence, but it failed to learn a satisfactory dynamics model---we looked for
+causes, and found the problem with the flywheel speed sensor described in
+Section~\ref{sec:flywheel_encoder}. We resolved this and proceeded with a
+3$^\textrm{rd}$ sequence.
 
 \section{Conclusions}
+
+\section{Further Work}
 
 \bibliography{iibproject}
 \bibliographystyle{unsrt}
@@ -1165,6 +1227,6 @@ Once all necessary work was complete, we initiated a training sequence for the
 \pagebreak
 \appendix
 
-\section{Extra Stuff}
+\section{Evaluation of Risk Assessment}
 
 \end{document}
