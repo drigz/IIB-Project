@@ -1217,9 +1217,17 @@ causes, and found the problem with the flywheel speed sensor described in
 Section~\ref{sec:flywheel_encoder}. We resolved this and proceeded with a
 3$^\textrm{rd}$ sequence.
 
+To be continued\dots
+
 \section{Conclusions}
 
 \section{Further Work}
+
+(succeeded but performance was lacking / achieved short periods of balance)
+
+(accuracy / confidence of final dynamic model)
+
+Once / Now that the unicycle is capable of 
 
 \bibliography{iibproject}
 \bibliographystyle{unsrt}
@@ -1228,5 +1236,46 @@ Section~\ref{sec:flywheel_encoder}. We resolved this and proceeded with a
 \appendix
 
 \section{Evaluation of Risk Assessment}
+
+The main concern in our risk assessment was the mechanical risk to the
+unicycle, the operator and their surroundings. The trial-and-error nature of
+RMLC means that initial controllers may well have positive feedback, and the
+unicycle will throw itself toward the ground much faster than it would fall
+naturally. Additionally, even when this is not the case, the unicycle is
+composed of more than 30kg of steel in a very unstable configuration.
+
+As described in the body of the report, a very large proportion of the work on
+this project was spent trying to determine a way to test the unicycle without
+risking it hitting the ground when it fell. Fortunately, all the methods used
+did successfully protect the unicycle during trials. Although the technique
+used to protect the unicycle changed (switching from the skirt to the rope) we
+were careful to ensure that the rope would not allow the unicycle to hit the
+ground or any bystanders.
+
+When we were using the rope, the range of the unicycle was limited, but when
+using the skirt and testing the 2D system, it was free to travel as far as it
+wanted. This presented the risk of the unicycle building up speed and driving
+into a wall, or one of the desks in the Control Lab. Previously, the only way
+to disable the unicycle during a trial was to use a nearby computer---to
+address this, we added cutoff buttons to the unicycle, allowing us to quickly
+disable it before it damaged itself or the surroundings. This made testing
+easy and safe.
+
+During the project, we discovered a risk that we didn't foresee. When we left
+the unicycle on its stand in the Control Lab, the cleaner tried to move it.
+Since, even on the stand, the unicycle is difficult to handle, it was knocked
+over. Fortunately, the cleaner was not hurt, and damage to the unicycle and
+floor were inconsequential. To prevent this happening again, we left a ``Do
+Not Touch'' sign on the unicycle whenever it was unattended, and made sure
+that the unicycle was left safely out of the way.
+
+There was also a small electrical risk in the project. Although the unicycle's
+power supply is only 12V, it has a very high current capacity, and can
+produce sparks capable of welding contacts together. Previously, the key to
+the unicycle's power switch had been lost, and to turn the power on, the
+unicycle had to be ``hot-wired'' by directly connecting the main power supply
+wires every time. Early in the project, we installed a power switch, removing
+this risk. We also endeavoured to insulate much of the exposed wiring on the
+unicycle to prevent short circuits.
 
 \end{document}
