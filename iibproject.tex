@@ -26,8 +26,6 @@
 \pagestyle{empty}
 \onehalfspacing
 
-
-
 \begin{document}
 
 % Title Page
@@ -40,7 +38,9 @@
 % Summary
 \renewcommand{\abstractname}{Technical Abstract}
 \begin{abstract}
-  technical abstract\ldots
+
+
+
 \end{abstract}
 \pagestyle{plain}
 \tableofcontents
@@ -55,7 +55,7 @@ flywheel or pendulum in the coronal plane, allowing direct compensation of
 falling to the side\cite{ref:zenkov,ref:murata}, as in
 Figure~\ref{fig:murata}. Other use a more realistic (and challenging) model of
 a flywheel in the horizontal plane\cite{ref:vos,ref:naveh}, as in
-Figures~\ref{fig:naveh_unicycle}, but none of these
+Figure~\ref{fig:naveh_unicycle}, but none of these
 have reliably balanced a real unicycle.
 
 \begin{figure}[htbp]
@@ -86,7 +86,7 @@ unicycle, shown in Figure~\ref{fig:3d_unicycle}, intending to design a controlle
 only able to complete the construction of the unicycle. In 2007/2008,
 D'Souza-Mathew resumed work, replacing a wheel sensor and attempting to design
 a controller. He simplified the problem by removing the ability to fall to the
-side, reducing it to 2D dynamic control: the inverted pendulum (from
+side, reducing the dynamics to two dimensions: the inverted pendulum (from
 now on referred to as the \textbf{2D system}). This is shown in
 Figure~\ref{fig:forster_unicycle}. He was unable to balance the unicycle due to
 hardware problems.
@@ -104,8 +104,9 @@ non-linearities like motor dead-zones and wheel friction that are present in
 any real-world system, and attempt to design a controller to stabilise the
 idealised system. In many cases, this approach is very successful. However,
 D'Souza-Mathew and Forster found that their model was invalid since the
-unicycle's motor drive didn't react faster enough. Vos and Naveh had to use
-complex, approximate techniques to model the unicycle.
+unicycle's motor drive didn't react faster enough. Since the 3D unicycle's
+dynamics are so complicated, Vos and Naveh had to use
+complex, approximate techniques to model the unicycle in a useful manner.
 
 An alternative ``intelligent'' approach to control involves learning the
 dynamics of the system directly, instead of relying on assumptions and
@@ -121,7 +122,7 @@ In 2009/2010, McHutchon successfully applied RMLC to the 2D system
 unicycle hardware and software to achieve this, he did not have time to
 attempt to balance the 3D unicycle.
 
-The principle objective of this project is to apply RMLC to the unrestricted
+The principal objective of this project is to apply RMLC to the unrestricted
 3D unicycle. This includes the solution of problems identified by McHutchon,
 as well as other problems identified during the project.
 
@@ -130,9 +131,9 @@ as well as other problems identified during the project.
 This project was conducted as a joint project between the author and Alan
 Douglass. The vast majority of the work was done together, and as such it is
 difficult to attribute ideas or components of the system to one or the other.
-When only one of us was responsible for a particular component, such as a
-particular circuit or module of the code, it is focussed upon in their report,
-and the other report will simply refer to it.
+When only one was responsible for a particular component, such as a circuit or
+module of the code, it is focussed upon in their report, and the other report
+will simply refer to it.
 
 Although this may raise difficulties for marking the projects, it was
 essential for the actual work. We would never have been able to make such
@@ -181,7 +182,8 @@ to the state distributions---this might find, for example, the expected
 distance between the top of the unicycle and the upright position.  Summing
 these losses over the horizon gives a numerical score that rates how well the
 dynamics model believes a given controller will balance the unicycle. This
-loss score penalises uncertainty as well as falling.
+loss score will be lowest for trajectory distributions that are concentrated
+near the equilibrium.
 
 The gradient of the loss with respect to the controller parameters can be
 calculated, and this allows standard gradient descent optimisation methods to
@@ -206,10 +208,10 @@ reached, is referred to as a training \textbf{sequence}.
 
 There are many different decisions to make when implementing the RMLC
 strategy, which are detailed in this section. Previously, Rasmussen used
-Forster's analytical model of the unicycle to simulate it, and used RMLC to
-train a controller for this ideal unicycle. Thanks to this, and to McHutchon's
-work on the real 2D system, we have a lot of information on which choices can
-work well in these situations, and which are most important.
+Forster's analytical model of the unicycle to simulate the real world trials,
+and used RMLC to train a controller for this ideal unicycle. Thanks to this,
+and to McHutchon's work on the real 2D system, we have a lot of information on
+which choices can work well in these situations, and which are most important.
 
 Some of these decisions were made on the results of various training
 sequences, which are presented in Section~\ref{sec:learning_results}.
@@ -233,7 +235,7 @@ very useful for interpreting how accurate the dynamics model is: a high SNR
 $\frac{\alpha}{\sigma_\varepsilon}$ suggests the model can predict very
 well.  Furthermore, automatic relevance detection is provided by the length
 scales - if a variable is not useful for predicting, the ML length scale will
-tend to $\inf$.
+tend to $\infty$.
 
 \subsubsection{Choice of State Vector}
 \label{sec:state_vector}
@@ -291,7 +293,7 @@ unicycle.
 
 \subsubsection{Controller Form}
 
-The most basic form of controller is a linear controller,
+One of the most basic forms of controller is a linear controller,
 $\boldsymbol{g}(\boldsymbol{q}[n]) = \boldsymbol{W} \boldsymbol{q}[n] +
 \boldsymbol{p}$, where $\boldsymbol{W}$ is a matrix of weights and
 $\boldsymbol{p}$ is a vector of offsets. This form is capable of stabilising
@@ -314,7 +316,11 @@ be solved by using a quadratic controller. This takes the form:
     \label{fig:xor}
     \end{figure}
 
-It was found that the controllers performed significantly better when using
+The quadratic controller was sufficient to balance the ideal unicycle in
+Rasmussen's simulations.
+
+When switching to the 2$^\textrm{nd}$ order Markov model, it was found that
+the controllers performed significantly better when using
 $\boldsymbol{q}_2[n]$ as input, instead of $\boldsymbol{q}[n]$. To understand
 this, consider the effect with a linear policy: the controller for the
 augmented state is equivalent to a combination of a two-tap FIR filter and a
@@ -326,9 +332,9 @@ first-order IIR filter on the original state:
    \boldsymbol{u}[n-1] + \boldsymbol{W}_3 \boldsymbol{q}[n]
   \end{IEEEeqnarray*}
 
-This allows the RMLC system to create basic low or high-pass filters in
-the controller, and this additional freedom improved the subjective quality of
-the controllers trained.
+This allows the RMLC system to create basic low or high-pass filters in the
+controller, and this additional freedom improved both the loss function and
+the subjective quality of the controllers trained.
 
 \subsubsection{Gathering Initial Data}
 \label{sec:random_trials}
@@ -342,22 +348,22 @@ controller with randomly chosen weights.
 
 We initially chose to use IID motor commands, chosen uniformly from the full
 range. However, the dynamics model could not model the resulting data well. We
-suspect that the same problems that mean that modelling the system as Markov
-order 2 (described in Section~\ref{sec:state_vector}) mean that if the motor
-command changes radically between cycles, the behaviour is very unpredictable.
-Since the dynamics model cannot model signal-dependent noise well, these
-datapoints cause a very uncertain model to be learnt.
+suspect that the same problems that make the 2$^\textrm{nd}$ order Markov
+model (described in Section~\ref{sec:state_vector}) so advantageous mean that
+if the motor command changes radically between cycles, the behaviour is very
+unpredictable.  Since the dynamics model cannot model signal-dependent noise
+well, these datapoints cause a very uncertain model to be learnt.
 
 We solved this problem by low-pass filtering the random motor commands: this prevents
 sudden changes in the motor command, while providing a wider survey of
-the space than a random controller, and avoiding the risk of large positive
+the space than a random controller and avoiding the risk of large positive
 feedback.
 
 \subsubsection{Loss Function}
 \label{sec:loss_function}
 
-The main concerns when choosing a loss function are accurately represent what
-is desired of the controller, and to ensure that different desires are
+The main concerns when choosing a loss function are to accurately represent
+what is desired of the controller, and to ensure that different desires are
 appropriately weighted. When stabilising the ideal unicycle, Rasmussen was
 successful using the following form of loss function:
 
@@ -382,19 +388,18 @@ the system from using a ``spinning-top'' like approach to balance, and to
 penalise the distances from the origin, $x_c$ and $y_c$, to prevent the system
 from driving the robot very fast to enhance stability.
 
-We used the same loss function structure, with characteristic widths of
-$9^\circ$ on the angles, 1 metre on the distances and 1 rps \& 3 rps on the
-yaw \& flywheel rates respectively. Unlike the ideal unicycle, the real
-unicycle has an upper limit on the flywheel speed, so the ``spinning-top''
-strategy is not viable, so it is possible that the yaw \& flywheel rates need
-not be penalised. This was not tested.
+We used a similar loss function structure, with characteristic widths of
+$9^\circ$ on the angles, and $\frac{2}{3}$ metres on the distances.  Unlike
+the ideal unicycle, the real unicycle has an upper limit on the flywheel
+speed, so the ``spinning-top'' strategy is not viable, and it is not important
+to penalise the flywheel speed.
 
 \subsubsection{Timestep}
 \label{sec:timestep}
 
 The RMLC approach assumes a discrete-time system - to apply it to a continuous
 time system, it must be discretised. We used a zero-order hold (ZOH) on the
-control signal: $u(t)~=~u[\lfloor\frac{t}{T}\rfloor]$
+control signal: $u(t)~=~u[\lfloor\frac{t}{T}\rfloor]$.
 
 Training for the ideal unicycle, Rasmussen found it desirable to choose the
 largest timestep $T$ with which the system can be stabilised, to reduce the
@@ -413,12 +418,12 @@ cause.
 
 \section{Hardware and Software}
 
-When the project started, some of the requirements were already clear, as a
-result of the previous work on the unicycle. As such, extensive changes to the
-hardware and a complete rewrite of the controller software were required to
-fix issues that had been turned up by the previous year's work, and to prepare
-it for 3D balance. A brief summary of the changes is below, followed by
-greater detail where necessary.
+When the project started, some of the required tasks were already clear, as a
+result of the previous work on the unicycle. These included extensive changes
+to the hardware and a complete rewrite of the controller software, both
+required to fix issues that had been turned up by the previous year's work
+and to prepare it for 3D balance. A brief summary of the changes is below,
+followed by greater detail where necessary.
 
 \begin{itemize}
 
@@ -432,7 +437,8 @@ greater detail where necessary.
   \item Algorithms for keeping track of angle and position in 3D were written.
 
   \item A new motor controller was built for the flywheel, as well as a
-    quadrature encoder for speed sensing.
+    quadrature encoder for speed sensing. Additionally, a different speed
+    sensing algorithm was implemented.
 
   \item A sensor for the battery voltage was added, to ensure it could supply
     sufficient power to the motors.
@@ -443,8 +449,8 @@ greater detail where necessary.
   \item Some faults were identified and could not be fixed, so tests and
     error-checking were added to ensure these did not corrupt the data.
 
-  \item To improve safety, the motor is disabled when a user presses a switch
-    on the chassis or when the unicycle nears the ground.
+  \item To improve safety, the motor is disabled when the operator presses a
+    switch on the chassis or when the unicycle nears the ground.
 
 \end{itemize}
 
@@ -460,7 +466,7 @@ greater detail where necessary.
 
 \subsubsection{Angle Sensing}
 
-The unicycle had previously used a MEMS rate gyroscope and a pair
+The unicycle had previously used a vibrating crystal rate gyroscope and a pair
 of infra-red distance sensors to keep track of its angle. However, these were
 reported to be extremely noisy, and were blamed for a large part of the poor
 performance of the previous system. Our supervisor had already purchased the
@@ -468,16 +474,17 @@ ITG-3200, a 3-axis MEMS rate gyroscope with in-built temperature compensation
 and low-pass filtering. We later purchased an ADXL345, a 3-axis MEMS
 accelerometer, to determine the absolute angle of the unicycle.
 
-The ITG-3200 rate gyro determines the angular velocity of the chip (and thus
-the unicycle) around each of its 3 axes. These values are offset by some
+The ITG-3200 rate gyro determines the angular velocity of the chip, and thus
+the unicycle, around each of its 3 axes. These values are offset by some
 unknown bias - this is determined before the trial by averaging the output
-when stationary, and is assumed to be approximately constant during a trial.
-They can then be converted to radians per second with a calibration factor
-from the datasheet \cite{ref:itg3200}.
+when stationary, and is assumed to be approximately constant during a
+trial.\footnote{Approximately true for short trials.} They can then be
+converted to radians per second with a calibration factor from the datasheet
+\cite{ref:itg3200}.
 
-To keep track of the absolute angle, these angular velocities must be
-integrated. There are 3 possible ways to keep track of rotations in 3D, of
-which unit quaternions were chosen as best suited to the project.
+To keep track of the unicycle's orientation, these angular velocities must be
+integrated. There are 3 commonly used ways to keep track of rotations in 3D,
+of which unit quaternions were chosen as best suited to the project.
 
 \begin{description}
   \item[Euler angles]
@@ -500,11 +507,15 @@ which unit quaternions were chosen as best suited to the project.
     Quaternions extend the complex numbers into 3D. Just as a complex number
     of unit magnitude can represent a rotation in the 2D plane, a quaternion
     of unit magnitude can represent a rotation in 3D. Although they may appear
-    confusing, they have the tightest integration loop, do not suffer from
+    confusing, they have the fastest integration step, do not suffer from
     gimbal lock and can be normalised by simply dividing by the magnitude.
 
     \end{description}
 
+Having chosen to use quaternions to track the orientation, various formulae
+had to be derived to convert to and from this form. These mathematical
+techniques are summarised here---they are reasonably simple to derive by
+considering the DCM as a composition of Euler rotations.
 
 \paragraph{Quaternion Integration}
 Given the unit quaternion representing a rotation from the global coordinate
@@ -518,8 +529,8 @@ the angular velocities with $\boldsymbol{q}[n+1] = \boldsymbol{q}[n] \left(1 +
 see \cite{ref:quaternions}.
 
 \paragraph{Euler Angles of a Quaternion}
-Unfortunately, the mechanical analysis of Forster (and thus the simulation of
-the ideal unicycle) uses a different angle convention to all other sources
+Unfortunately, the mechanical analysis of Forster, and thus the simulation of
+the ideal unicycle, uses a different angle convention to all other sources
 located. We chose to continue with this convention, and so the expressions for
 converting a quaternion to Euler angles had to be rederived. Using a
 convention of yaw around the vertical $y$-axis, roll around the forward
@@ -594,7 +605,7 @@ Figure~\ref{fig:gyro_stat}. It is clear that the noise and drift are on the
 same order of magnitude, over a 10 second trial, the zero-offset changed by
 about 0.1 deg s$^{-1}$, leading to a drift of below 1$^\circ$. This was judged
 as acceptable.  If we wished to conduct longer trials, we could use one of a
-variety of fusion methods such as state observers, Kalman filters, or one of
+variety of fusion methods such as state observers, Kalman filters or one of
 many highly tuned implementations developed by UAV hobbyists
 \cite{ref:gluonpilot}.
 
@@ -608,10 +619,10 @@ many highly tuned implementations developed by UAV hobbyists
 
 \paragraph{Accelerometer Noise}
 Figure~\ref{fig:acc_stat} shows the accelerometer noise when stationary (the
-mean reading has been subtracted). (Note that the noise characteristic is very
+mean reading has been subtracted).\footnote{Note that the noise characteristic is very
 different for one axis compared to the other 2 - this is because this axis is
-perpendicular to the chip, and is built differently.) This corresponds to
-noise standard deviations for pitch and roll of about 0.5$^\circ$, but this
+perpendicular to the chip, and is built differently.} These noises correspond
+to noise standard deviations for pitch and roll of about 0.5$^\circ$, but this
 can be reduced by averaging many readings. More detail on the use of the
 accelerometer can be found in Douglass's report.
 
@@ -626,11 +637,11 @@ accelerometer can be found in Douglass's report.
 \subsubsection{Position Sensing}
 \label{sec:position_sensing}
 
-In order to reduce the number of state variable necessary, Rasmussen used
-self-centred coordinates to keep track of the position of the target. In
-these coordinates, the unicycle is at (0, 0) and faces along the positive
-$x$-axis, as shown in Figure~\ref{fig:xor}. At each timestep, we must use the
-change in yaw angle $\Delta\phi$ and the change in wheel angle
+In order to reduce the number of state variables necessary, Rasmussen used
+self-centred coordinates to keep track of the position of the target. In these
+coordinates, the unicycle is at (0, 0) and faces along the positive $x$-axis,
+as shown in Figures~\ref{fig:xor}~and~\ref{fig:scc}. At each timestep, we must
+use the change in yaw angle $\Delta\phi$ and the change in wheel angle
 $\Delta\psi_w$ (along with wheel radius $r_w$) to calculate the new target
 position. From Figure~\ref{fig:scc} we can see that $x_c$ and $y_c$ must be
 modified as follows:
@@ -649,7 +660,7 @@ modified as follows:
   y_c[n]
 \end{bmatrix} +
 \begin{bmatrix}
-  0 \\ -r_w\Delta \psi_f
+  0 \\ -r_w\Delta \psi_w
 \end{bmatrix}
 \]
 
@@ -672,20 +683,17 @@ application.
 
 \subsubsection{Wheel Speed Sensing}
 
-When we started the project, a quadrature encoder was being used to measure
-the position and speed of the wheel. This is a digital sensor, which generates
-a pulse every time the wheel moves through $\frac{1}{512}$ of a revolution.
-Merely counting these pulses gives extremely good measurements of position
-(accurate to around 1mm) but it is harder to measure speed. The approach being
-used previously was to measure the number of pulses in 40ms, but this leads to
-a quantisation error of 25 pulses per second, or 2.5cm s$^{-1}$.
-
-More details on how the quadrature encoders are used to sense position can be
-found in Douglass's report \nocite{ref:douglass}.
-
-An alternative method is to measure the amount of time between the last two
-pulses, but at high speeds this time may be very short, and this time may be
-hard to measure accurately.
+The unicycle uses a quadrature encoder to measure the position and speed of
+the wheel. This is a digital sensor, which generates a pulse every time the
+wheel moves through $\frac{1}{512}$ of a revolution.  Merely counting these
+pulses gives extremely good measurements of position (accurate to around 1mm)
+but it is harder to measure speed.\footnote{More details on how the quadrature
+encoders are used to sense position can be found in Douglass's report.
+\nocite{ref:douglass}} The approach being used previously was to measure the
+number of pulses in 40ms, but this leads to a quantisation error of 25 pulses
+per second, or 2.5cm s$^{-1}$.  An alternative method is to measure the amount
+of time between the last two pulses, but at high speeds this time may be very
+short, and this time may be hard to measure accurately.
 
 This became more important when we added a quadrature encoder for the
 flywheel: the sensors used are much less accurate than those on the wheel.
@@ -700,10 +708,11 @@ It adapts the size of the 40ms window to contain an integer number of pulses,
 eliminating quantisation error. At high speeds, it is similar to the first
 scheme, considering the length of many pulses to reduce the effect on
 non-uniformity and timing errors. At sufficiently low speeds, it adapts to
-only using the most recent pulse, avoiding quantisation error.
+only using the most recent pulse, just as the second scheme does.
 Figure~\ref{fig:encoder_speed} explains how it works---note that some thought
 is required about what should be returned when no pulses are observed in the
-window.
+window. Implementing this scheme approximately doubled the signal-to-noise
+ratio, as determined from the GP hyperparameters.
 
 \begin{figure}[htpb]
   \begin{center}
@@ -719,9 +728,9 @@ window.
 Due to the trial-and-error nature of the RMLC method, the unicycle must be
 able to survive using a controller that may be worse than none at all. When
 the dynamics model is inaccurate, it may choose a controller than throws the
-30kg unicycle towards the ground with all the force of a 240W motor.
-Figure~\ref{fig:alu_bar} shows the effect of repeated trials on the aluminium
-bar used in the previous year.
+30kg unicycle towards the ground with the combined forces of gravity and the
+motor.  Figure~\ref{fig:alu_bar} shows the effect of repeated trials on the
+aluminium bar used in the previous year.
 
 \begin{figure}[htpb]
   \begin{center}
@@ -775,12 +784,13 @@ send the maximum motor command to the flywheel at all times, and found that it
 could only turn around 30$^\circ$ before falling.
 
 It is very important that the robot be able to turn sufficiently fast to be
-able to point in the direction in which it is falling, before it has fallen.
-We considered various possible causes for the slow turning:
+able to point in the direction in which it is falling, before it has fallen
+too far to recover.  We considered various possible causes for the slow
+turning:
 
 \begin{itemize}
-  \item Adding the skirt had increased the moment of inertia, making it spin
-    slowly.
+  \item Adding the skirt had increased the moment of inertia (MoI), making it
+    spin slowly.
   \item Friction with the ground was causing it to turn too slowly.
   \item The gear ratio for the flywheel was chosen badly.
   \item The flywheel had insufficient moment of inertia to turn the robot fast
@@ -789,9 +799,9 @@ We considered various possible causes for the slow turning:
     effects.
     \end{itemize}
 
-To try to quantise this, we suspended the robot above the ground, and tested
+To try to quantify this, we suspended the robot above the ground, and tested
 the response of the system to a step increase in flywheel command. We then
-used a mathematical model to quantify how changing various variables would
+used a mathematical model to predict how changing various variables would
 affect the spin speed.
 
 \subsubsection{Spin Analysis}
@@ -832,10 +842,13 @@ The corresponding step response is of the form:
 \]
 
 Fitting this to the observed step response, as in Figure~\ref{fig:step}, tells
-us that $K = 33$ and $\tau = 0.55$ seconds.
+us that $K = 33$ and $\tau = 0.55$ seconds.\footnote{The egregious noise in
+the flywheel speed trace is caused by the problem described in
+Section~\ref{sec:flywheel_encoder}.}
 
 If we integrate to get the flywheel angle, and then assume that there are no
-external torques on the robot and that the robot has MoI $J_r$:
+external torques on the robot and that the robot has MoI
+$J_r$\footnote{Including the skirt, if attached}:
 \begin{IEEEeqnarray*}{rCl}
   \omega_\textrm{flywheel}(t) &=& K (1 - e^{-\frac{t}{\tau}}) \\
   \theta_\textrm{flywheel}(t) &=& K (t + \tau (e^{-\frac{t}{\tau}} - 1)) \\
@@ -928,9 +941,12 @@ unable to reach a design for the skirt that was both sturdy and light.
     \end{figure}
 
 Eventually, we chose to use a rope tied to the mezzanine in the foyer of the
-Engineering department. This is a very busy area, and so testing can only be
-done outside of the department's normal opening hours, but at least the
-problematic effects of the skirt are completely removed.
+Engineering department, shown earlier in Figure~\ref{fig:rope}. In addition to
+imposing an unwelcome limit on the range of the unicycle, this is a very busy
+area, and so testing can only be done outside of the department's normal
+opening hours. Unfortunately, this was the only way that the problematic
+effects of the skirt could be avoided while maintaining a safe testing
+procedure.
 
 \subsection{Known Issues}
 
@@ -947,7 +963,7 @@ between the encoder reading at the actual position, which would cause great
 problems for the dynamic model. As such, it was critical to make sure that we
 observed carefully for trials in which the belt slipped, and removed the
 corrupted data from the logs. Towards the end of the testing process, we
-installed an extra strut, also shown in Figure~\ref{fig:fan_belt} to maintain
+installed an extra strut, also shown in Figure~\ref{fig:fan_belt}, to maintain
 tension in the belt.
 
 \begin{figure}[htpb]
@@ -973,7 +989,7 @@ The cause of this is unknown, but likely an electrical problem due to the
 unpredictable behaviour and sensitivity to contact from the voltmeter probe.
 Because we were unable to prevent it from happening, we modified the software
 to test both motors before every trial. This allowed us to power cycle the
-system to avoid the problem.
+system to avoid the problem whenever it was detected.
 
 \subsubsection{Flywheel Encoder}
 \label{sec:flywheel_encoder}
@@ -998,8 +1014,8 @@ to digitise the analog encoder outputs. Figure~\ref{fig:scope_trace} shows a
 trace of the input and output to this signal cleaning circuit (the two traces
 have been traced in an image editor for clarity). There appears to be a
 negative spike in the signal, part-way through the high cycle.  This is due to
-interference between the two quadrature sensors (covering one emitter removed
-the spike). Unfortunately, the low hysteresis voltage on the model of Schmitt
+interference between the two quadrature sensors.\footnote{Covering one emitter removed
+the spike.} Unfortunately, the low hysteresis voltage on the model of Schmitt
 trigger used (0.4V min., 0.7V typ.) means that this is enough to reach the
 threshold and cause problems. The extent of this problem was limited slightly
 by placing a larger piece of cardboard between the two sensors.
@@ -1016,11 +1032,11 @@ The other problem visible is that the range of the analog signal is not 0--5V,
 but around 0--3.4V. This is because the photodiode in the sensor is not fully
 conducting when pointed at a white part of the pattern. To ensure that the
 Schmitt trigger acted properly, we reduced its supply voltage to 3.3V. While
-this meant that the input exceeded the supply voltage, and that the high-level
-output was 3.3V, yet the AVR (the processor on the Arduino) operates on 5V,
-both the Schmitt trigger \cite{ref:4093} and the AVR's \cite{ref:atmega}
-datasheets stated that these were acceptable. This does have the effect of
-further reducing the hysteresis voltage, but combined with the added
+this meant that the input exceeded the supply voltage and that the 3.3V logic
+output was not matched to the 5V input on the AVR (the processor on the
+Arduino), both the Schmitt trigger and the AVR's datasheets stated that
+these were acceptable\cite{ref:4093}\cite{ref:atmega}. This does have the
+effect of further reducing the hysteresis voltage, but combined with the added
 occlusion, it helped control the problem.
 
 Despite these changes, the problem is still very sensitive to the orientation
@@ -1042,8 +1058,8 @@ ADXL345.
 
 We were unable to identify or remove the cause of this problem, which could be
 anything from a race-condition in the software to damage to one of the
-involved ICs (soldering mistakes led to a number of short circuits and
-over-volting of the ICs during the development process). Fortunately, the
+involved ICs.\footnote{Soldering mistakes led to a number of short circuits and
+over-volting of the ICs during the development process.} Fortunately, the
 problem occurred reasonably rarely, so we chose to implement timeouts in the
 I$^2$C driver. Whenever one of these timeouts occurs, the error is
 signalled, and the data can be discarded.
@@ -1087,12 +1103,12 @@ balance, and it never gathers any data suggesting that it can balance.
     \label{fig:high_dist_loss}
     \end{figure}
 
-The second sequence fixed this error, and as shown in
+The second sequence fixed this error and, as shown in
 Figure~\ref{fig:2nd_sequence}, this sequence successfully generated
 controllers than could balance the unicycle for 15 seconds, with no sign of
-growing instability. (The blue lines show the prediction: the mean is dashed
-and the 95\% confidence bounds are solid. The red line shows the trial
-result.) However, this is despite the fact that uncertainty the prediction
+growing instability.\footnote{The blue lines show the prediction: the mean is
+dashed and the 95\% confidence bounds are solid. The red line shows the trial
+result.} However, this is despite the fact that uncertainty the prediction
 grows extremely rapidly. Clearly, the dynamics model has managed to capture
 enough of the dynamics of the real system to allow balancing the unicycle, yet
 is extremely uncertain about its predictions.
@@ -1130,7 +1146,7 @@ Figure~\ref{fig:2d_50ms}---much improved, but still inadequate.
     \label{fig:2d_predictions}
     \end{figure}
 
-During trials, we observed the unicycle shaking, and a lot of noise coming
+During trials, we observed the unicycle shaking and a lot of noise coming
 from the gear-train. We suspected that problems like gear backlash were
 contributing to the poor performance of the system, and so we gave the dynamic
 model access to two consecutive states when predicting (as described in
@@ -1150,7 +1166,14 @@ duration of the cycle. There are a number of possibilities for remedying this
 problem, such as manually compensating for the dead-zone, or allowing the RMLC
 system to use non-linear controllers that could learn to compensate for the
 dead-zone. Due to time constraints, however, we accepted the performance as
-satisfactory and moved on to the 3D unicycle.
+satisfactory and moved on to the 3D unicycle.\footnote{There is a technique
+for dealing with motor dead-zones known as ``dithering'', which involves
+adding a high-frequency periodic signal to the motor command, which will push
+the motor in and out of its dead-zone. The system will filter this rapidly
+oscillating force out, effectively smoothing the dead-zone out. McHutchon
+observed much better performing controllers for the 2D system---ironically, it
+is possible that the high noise levels of his angle sensors had a dithering
+effect on the motor, improving the performance.}
 
 \begin{figure}[htpb]
   \begin{center}
@@ -1159,14 +1182,6 @@ satisfactory and moved on to the 3D unicycle.
     \caption{Trial exhibiting limit cycle behaviour}
     \label{fig:limit_cycle}
     \end{figure}
-
-As a sidenote: there is a technique for dealing with motor dead-zones known as
-``dithering'', which involves adding a high-frequency periodic signal to the
-motor command, which will push the motor in and out of its dead-zone. The
-system will filter this rapidly oscillating force out, effectively smoothing
-the dead-zone out. McHutchon observed much better performing controllers for
-the 2D system---ironically, it is possible that the high noise levels of his
-angle sensors had a dithering effect on the motor, improving the performance.
 
 \subsection{Learning the 3D Unicycle}
 
@@ -1234,7 +1249,7 @@ TODO:
 When the unicycle was first built by Mellors and Lamb in 2004/2005, they
 included a wireless transmitter and receiver for the purpose of allowing a
 human to remotely control the unicycle. 
-Once / Now that the unicycle is capable of balancing and controlling its
+(TODO: Once / Now) that the unicycle is capable of balancing and controlling its
 position, it would be interesting to see how well the controller deals with
 changes in its target position. Since it has not been optimised for
 this---McHutchon noted the poor disturbance rejection of RMLC-trained
