@@ -29,7 +29,7 @@
   \let\footnotesize\small
   \let\footnoterule\relax
   \null\vfil
-  \vskip 60\p@
+  \vskip 7.5cm % 60\p@
   \begin{center}%
     {\LARGE \@title \par}%
     \vskip 3em%
@@ -75,14 +75,15 @@
 \def\@maketitle{%
   \newpage
   \null
-  \vskip 6.15cm%
+  \vskip 7cm%
   \begin{center}%
     {\Large \@title \par}%
     {by\par}
     {\large
       \lineskip .5em%
       \begin{tabular}[t]{c}%
-        \@author
+        \@author \\
+        \normalsize in collaboration with Alan Douglass
       \end{tabular}\par}%
 \vskip 2mm 
    Fourth-year undergraduate project in\\Group \@projectgroup, 2010/2011%
