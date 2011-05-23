@@ -1217,17 +1217,65 @@ causes, and found the problem with the flywheel speed sensor described in
 Section~\ref{sec:flywheel_encoder}. We resolved this and proceeded with a
 3$^\textrm{rd}$ sequence.
 
-To be continued\dots
+TODO: To be continued\dots
 
 \section{Conclusions}
 
+TODO: 
+
 \section{Further Work}
 
-(succeeded but performance was lacking / achieved short periods of balance)
+(TODO: succeeded but performance was lacking / achieved short periods of balance)
 
-(accuracy / confidence of final dynamic model)
+(TODO: accuracy / confidence of final dynamic model)
 
-Once / Now that the unicycle is capable of 
+(TODO: if it fails, talk about building a smaller unicycle)
+
+When the unicycle was first built by Mellors and Lamb in 2004/2005, they
+included a wireless transmitter and receiver for the purpose of allowing a
+human to remotely control the unicycle. 
+Once / Now that the unicycle is capable of balancing and controlling its
+position, it would be interesting to see how well the controller deals with
+changes in its target position. Since it has not been optimised for
+this---McHutchon noted the poor disturbance rejection of RMLC-trained
+controllers---it seems likely that it will not be able to track the target
+position well.
+
+In order to (TODO: balance / achieve this task, or to improve balancing
+performance), it may be necessary to use a more complicated controller than the
+quadratic controller used here. Gaussian Processes have previously been used
+for the controller as well as the dynamic model to allow radically different
+control strategies to be used in different regions of state space. This is a
+necessity for tasks such as swinging up an inverted pendulum from the
+downwards position, and it seems likely that the greater flexibility of such a
+controller would improve balancing performance, and allow the unicycle to
+recover from a greater range of position \& angle offsets. However, this would
+almost certainly require a more powerful processor than the AVR used for this
+project.
+
+Another technique for (TODO: achieving balance / improving the balancing
+performance) would be focussing on the sensors. Obviously, physical
+improvements to the sensors would allow more accurate estimation of the state,
+and thus more accurate predictions from the dynamics model. Further to this,
+McHutchon had success using a Kalman filter based on the dynamics model to
+improve the state observations, and suggested using a non-linear approximation
+to the dynamics model to further improve performance (using the full dynamics
+model is currently impossible, since it simulates at 40x slower than real-time
+on a very fast processor).
+
+Additionally, while the RMLC system requires extremely little experience with
+the data to generate a good controller, the current implementation requires
+huge amounts of computational time to generate the controllers. The
+2$^\textrm{nd}$ 3D training sequence used 7.4 days of CPU-time on a high-end
+server. In addition to optimisations to the training code such as
+approximations of GPR, it would be interesting to investigate the how fast the
+system learns when the amount of optimisation time is more tightly limited.
+
+Despite the flaws of computational requirements and sensitivity to
+disturbances, this approach to control has proven itself by learning to
+balance (other systems / this system) with extremely little experience with
+the system. Addressing these concerns would be very interesting, and could
+make the RMLC method significantly more useful.
 
 \bibliography{iibproject}
 \bibliographystyle{unsrt}
