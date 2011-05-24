@@ -1244,7 +1244,22 @@ TODO:
 
 (TODO: accuracy / confidence of final dynamic model)
 
-(TODO: if it fails, talk about building a smaller unicycle)
+For further investigation of the performance of RMLC on the unicycle system,
+it would be very useful to build a smaller unicycle. This would completely
+solve the fall-protection and range issues, and it could be built without the
+design flaws that have plagued this project. A system like Lego would allow
+the mechanical design to be varied easily, allowing the investigation of
+different dynamic systems.
+
+If future projects intend to continue with the current system, they would do
+well to focus on improving the sensors. Obviously, physical improvements to
+the sensors would allow more accurate estimation of the state, and thus more
+accurate predictions from the dynamics model. Further to this, McHutchon had
+success using a Kalman filter based on the dynamics model to improve the state
+observations, and suggested using a non-linear approximation to the dynamics
+model to further improve performance---using the full dynamics model is
+currently impossible, since it simulates at 40x slower than real-time on a
+very fast processor.
 
 When the unicycle was first built by Mellors and Lamb in 2004/2005, they
 included a wireless transmitter and receiver for the purpose of allowing a
@@ -1268,15 +1283,6 @@ recover from a greater range of position \& angle offsets. However, this would
 almost certainly require a more powerful processor than the AVR used for this
 project.
 
-Another technique for (TODO: achieving balance / improving the balancing
-performance) would be focussing on the sensors. Obviously, physical
-improvements to the sensors would allow more accurate estimation of the state,
-and thus more accurate predictions from the dynamics model. Further to this,
-McHutchon had success using a Kalman filter based on the dynamics model to
-improve the state observations, and suggested using a non-linear approximation
-to the dynamics model to further improve performance (using the full dynamics
-model is currently impossible, since it simulates at 40x slower than real-time
-on a very fast processor).
 
 Additionally, while the RMLC system requires extremely little experience with
 the data to generate a good controller, the current implementation requires
@@ -1286,7 +1292,7 @@ server. In addition to optimisations to the training code such as
 approximations of GPR, it would be interesting to investigate the how fast the
 system learns when the amount of optimisation time is more tightly limited.
 
-Despite the flaws of computational requirements and sensitivity to
+Despite the flaws of heavy computational requirements and sensitivity to
 disturbances, this approach to control has proven itself by learning to
 balance (other systems / this system) with extremely little experience with
 the system. Addressing these concerns would be very interesting, and could
@@ -1327,15 +1333,15 @@ easy and safe.
 During the project, we discovered a risk that we didn't foresee. When we left
 the unicycle on its stand in the Control Lab, the cleaner tried to move it.
 Since, even on the stand, the unicycle is difficult to handle, it was knocked
-over. Fortunately, the cleaner was not hurt, and damage to the unicycle and
-floor were inconsequential. To prevent this happening again, we left a ``Do
+over. Fortunately, the cleaner was not hurt and damage to the unicycle and
+floor were inconsequential. To prevent this happening again we left a ``Do
 Not Touch'' sign on the unicycle whenever it was unattended, and made sure
 that the unicycle was left safely out of the way.
 
 There was also a small electrical risk in the project. Although the unicycle's
-power supply is only 12V, it has a very high current capacity, and can
+power supply is only 12V, it has a very high current capacity and can
 produce sparks capable of welding contacts together. Previously, the key to
-the unicycle's power switch had been lost, and to turn the power on, the
+the unicycle's power switch had been lost and to turn the power on, the
 unicycle had to be ``hot-wired'' by directly connecting the main power supply
 wires every time. Early in the project, we installed a power switch, removing
 this risk. We also endeavoured to insulate much of the exposed wiring on the
