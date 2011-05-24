@@ -35,17 +35,99 @@
 \maketitle
 \thispagestyle{empty}
 
-% Summary
-\renewcommand{\abstractname}{Technical Abstract}
-\begin{abstract}
-
-
-
-\end{abstract}
 \pagestyle{plain}
 \tableofcontents
 \newpage
 
+\setlength{\parskip}{6pt plus 1pt minus 1pt}
+
+\section*{Technical Abstract}
+
+In 2004 and 2005, a robotic unicycle was built by
+Mellors\cite{ref:mellors} and
+Lamb\cite{ref:Lamb} as a Master's project, using a powered wheel and horizontal flywheel
+designed to emulate the actuation used by a human rider, but they lacked the
+time to design a controller. Several years later, D'Souza-Mathew\cite{ref:dsm}
+and then Forster\cite{ref:forster} attempted to stabilise it by adding
+training wheel, and using the wheel to balance in pitch, but were thwarted by
+problems with the hardware.
+
+The system of the unicycle with a horizontal flywheel actuator had previously
+been studied by Vos\cite{ref:vos} and Naveh\cite{ref:naveh}. Vos built a
+physical unicycle and designed a controller for it, but his results were
+reportedly unreliable. Furthermore, his controller required constant forward
+motion of the unicycle to correct for roll errors. Naveh built upon Vos's
+design, coming up with a more capable (and complicated) controller, but did
+not test it on a physical unicycle. 
+
+These projects all sought to build a manageable but accurate analytical
+model of the dynamics of the unicycle. They then applied non-linear control
+techniques to try to stabilise the unicycle. This is particularly difficult
+for unicycle with a horizontal flywheel, since when it rolls to the side it
+must both rotate in the direction of the fall and then travel forwards to
+catch itself. Such complicated behaviour is hard to capture with analytical
+control techniques.
+
+An alternative approach is to build a numerical model of the dynamics directly
+from interaction with the system, and then to computationally design an
+optimal controller for the numerical model---the reinforcement learning
+problem. An approach to this problem due to Rasmusssen and
+Deisenroth\cite{ref:rasdei08}, Reinforced Model Learnt Control (RMLC), has
+been successfully used to learn to swing up and balance an inverted pendulum,
+with prior knowledge only of the states and control inputs of the system. It
+has also been used to stabilise a computer simulation of the 3D unicycle. One
+of the most important aspects of RMLC is that it uses Gaussian Processes to
+learn the dynamics of the system, allowing it to make predictions while
+keeping track of the certainty of its knowledge about the system.
+
+Previously, McHutchon had successfully applied RMLC to the unicycle with
+training wheels---this had required several changes to the hardware of the
+unicycle. His work gave a clear idea of necessary changes to the hardware and
+software of the unicycle in order to enable it to learn to balance without
+training wheels. The first aim of the project was to install a new MEMS
+gyroscope and an Arduino microcontroller, and then to repeat McHutchon's
+stabilisation experiments. These changes solved a number of problems with the
+original system, including noisy angle measurements and voltage supply
+problems. We were also able to take advantage of the flexibility of the new
+Arduino-based architecture and improve the safety and ease of use of the
+system.
+
+After making these changes, the RMLC system was able to successfully the
+unicycle with training wheels. Additionally, we found we could significantly
+improve the performance of the RMLC-trained controllers by reducing the
+timestep at which the system is discretised, and by modelling the discretised
+system as a 2$^\textrm{nd}$ order Markov Chain. This led to confident and
+accurate predictions about the performance of the unicycle, and these
+techniques would be critical in modelling the unicycle without training
+wheels.
+
+The next step was to prepare the hardware and software for balancing the
+unicycle. This required the addition of an accelerometer for sensing the
+initial angle of the unicycle and a new motor controller and speed sensor for
+the flywheel. We also required new algorithms for keeping track of the
+unicycle's orientation and position in 3D space, for sensing the flywheel
+speed more accurately from an extremely unreliable sensor and for applying a
+quadratic controller to the system. Additionally, we designed and built a
+wooden skirt to protect the unicycle from falling too far when testing
+incapable controllers. When this turned out to have too high a moment of
+inertia, we redesigned it to reduce the weight, and finally settled on testing
+with a loose rope tied to a balcony above the unicycle.
+
+At this point, we started training the unicycle to balance. During the first
+process, the system became capable of designing controllers that could
+reliably keep the unicycle vertical until it reached the edge of its range and
+was pulled over by the rope. Although the learned dynamics model could
+accurately predict the motion of the unicycle, the system was unable to design
+a controller that could stay in one place. This turned out to be the result of
+a bug in the position tracking---the controller did not have sufficient
+information to control its position.
+
+Once this problem had been fixed, a second training process was initiated, but
+failed due to a sensor problem. Finally, a third training process was
+undertaken, which followed the same initial process of learning to balance as
+the first. TODO: continue\dots
+
+\newpage
 \section{Introduction}
 
 Balancing a unicycle is a very challenging task for a
@@ -1201,11 +1283,11 @@ confidently predict both roll and pitch angles.
 \begin{figure}[htpb]
   \begin{center}
     \subfigure[Unicycle angles]{
-      \includegraphics[width=12cm]{3d_1st_sequence_angle.pdf}
+      \includegraphics[width=12cm]{3d_1st_sequence_angle_2.pdf}
       \label{fig:3d_1st_sequence_angle}
     }
     \subfigure[Unicycle position]{
-      \includegraphics[width=12cm]{3d_1st_sequence_dist.pdf}
+      \includegraphics[width=12cm]{3d_1st_sequence_dist_2.pdf}
       \label{fig:3d_1st_sequence_dist}
     }
     \end{center}
