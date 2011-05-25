@@ -771,7 +771,7 @@ many highly tuned implementations developed by UAV hobbyists
 
 \begin{figure}[htpb]
   \begin{center}
-    \includegraphics[width=13cm]{figures/gyro_stat.pdf}
+    \includegraphics[width=15cm]{figures/gyro_stat.pdf}
     \end{center}
     \caption{Gyro readings when stationary}
     \label{fig:gyro_stat}
@@ -788,7 +788,7 @@ accelerometer can be found in Douglass's report.
 
 \begin{figure}[htpb]
   \begin{center}
-    \includegraphics[height=7cm]{figures/acc_stat.pdf}
+    \includegraphics[height=8cm]{figures/acc_stat.pdf}
     \end{center}
     \caption{Accelerometer readings when stationary}
     \label{fig:acc_stat}
@@ -1163,7 +1163,7 @@ model to predict.
 
 \begin{figure}[htpb]
   \begin{center}
-    \includegraphics[height=7cm]{bad_fly_speed.pdf}
+    \includegraphics[height=8cm]{bad_fly_speed.pdf}
     \end{center}
     \caption{Corrupted flywheel speed measurements}
     \label{fig:bad_fly_speed}
@@ -1257,7 +1257,7 @@ balance, and it never gathers any data suggesting that it can balance.
 
 \begin{figure}[htpb]
   \begin{center}
-    \includegraphics[height=7cm]{high_dist_loss.pdf}
+    \includegraphics[height=8cm]{high_dist_loss.pdf}
     \end{center}
     \caption{Trials from the first sequence}
     \label{fig:high_dist_loss}
@@ -1275,9 +1275,9 @@ is extremely uncertain about its predictions.
 
 \begin{figure}[htpb]
   \begin{center}
-    \includegraphics[width=13cm]{2nd_sequence.pdf}
+    \includegraphics[width=15cm]{2nd_sequence_2.pdf}
     \end{center}
-    \caption{Sampled predictions and trials from 2$^\textrm{nd}$ training
+    \caption{Sampled angle predictions and trials from 2$^\textrm{nd}$ training
     sequence}
     \label{fig:2nd_sequence}
     \end{figure}
@@ -1294,11 +1294,11 @@ Figure~\ref{fig:2d_50ms}---much improved, but still inadequate.
 \begin{figure}[htpb]
   \begin{center}
     \subfigure[50ms timestep]{
-      \includegraphics[height=6cm]{2d_50ms_angle.pdf}
+      \includegraphics[height=6cm]{2d_50ms_angle_2.pdf}
       \label{fig:2d_50ms}
     }
     \subfigure[2$^\textrm{nd}$ order Markov]{
-      \includegraphics[height=6cm]{2d_50ms_angle_history.pdf}
+      \includegraphics[height=6cm]{2d_50ms_angle_history_2.pdf}
       \label{fig:2d_hist}
     }
     \end{center}
@@ -1395,14 +1395,30 @@ Section~\ref{sec:flywheel_encoder}. We resolved this and proceeded with a
 At the start of the 3$^\textrm{rd}$ sequence, we observed a learning process
 similar to the 1$^\textrm{st}$ sequence: initially, the robot quickly learned
 to balance in pitch, and then to balance in roll too, but still tended to
-wander off until it pulled the support rope taut. Changing the loss function
-to penalise off-centre positions more heavily did not affect its behaviour. 
+wander off until the support rope would allow it no farther. Changing the loss
+function to penalise off-centre positions more heavily did not significantly
+affect its behaviour. 
 
 TODO: To be continued\dots
 
 \section{Conclusions}
 
-TODO: 
+TODO
+
+Outline:
+
+\begin{itemize}
+  \item Most work was directed at hardware and software, not machine learning.
+  \item Even with low-quality sensors, GPs did a good job of modelling system
+    over ~5 seconds with very little experience.
+  \item Were we able to find a controller?
+  \item Applying RMLC involves (a) noise management (timestep, 2nd order
+    markov modelling, avoiding corrupted data) and (b) representing the world
+    accurately (loss function, initial distribution)
+  \item When those conditions are satisfied, RMLC does a very good job of
+    finding controllers capable of achieving a given task, without prior
+    expert knowledge.
+    \end{itemize}
 
 \section{Further Work}
 
