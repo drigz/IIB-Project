@@ -391,7 +391,14 @@ However, this is an extremely non-physical distribution---since the 95\%
 confidence interval on initial position is $[-0.2\textrm{m}, 0.2\textrm{m}]$,
 this initial state distribution suggested it was very likely that the unicycle
 would move 0.4 metres perpendicular to the wheel in 0.05 seconds: clearly
-impossible.
+impossible. A result of this was that the behaviour in trials was very
+different to the expected behaviour, as shown in
+Figure~\ref{fig:pred_dist_orig}, despite the fact that when given the initial
+state, the trial followed a very similar path to the prediction, as
+demonstrated by Figure~\ref{fig:pred_dist_single}.\footnote{The
+trial actually follows a trajectory slightly outside the prediction's
+confidence bounds: this is may be due to measurement noise affecting the
+initial state estimate.}
 
 Upon realising this, a new initial state distribution was chosen, based on the
 model that the two previous states are the same, but there is some small
@@ -417,7 +424,27 @@ different, and also that this model is not quite true.
   \end{IEEEeqnarray*}
 Since at this point several trials had already been performed, we were able
 to estimate $\mu_i$, $\sigma_i$ and $\sigma_{\varepsilon,i}$ from the trial
-data.
+data. Using this new initial distribution, the expected behaviour is much more
+like the observed trial, as shown in Figure~\ref{fig:pred_dist_new}.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \subfigure[Prediction with original initial distribution]{
+      \includegraphics[height=7cm]{pred_dist_orig.pdf}
+      \label{fig:pred_dist_orig}
+    }
+    \subfigure[Prediction with trial's initial state]{
+      \includegraphics[height=7cm]{pred_dist_single.pdf}
+      \label{fig:pred_dist_single}
+    }
+    \subfigure[Prediction with new initial distribution]{
+      \includegraphics[height=7cm]{pred_dist_new.pdf}
+      \label{fig:pred_dist_new}
+    }
+    \end{center}
+    \caption{Effect of initial distribution on predictions}
+    \label{fig:pred_dist}
+    \end{figure}
 
 \subsubsection{Controller Form}
 
@@ -1364,6 +1391,12 @@ sequence, but it failed to learn a satisfactory dynamics model---we looked for
 causes, and found the problem with the flywheel speed sensor described in
 Section~\ref{sec:flywheel_encoder}. We resolved this and proceeded with a
 3$^\textrm{rd}$ sequence.
+
+At the start of the 3$^\textrm{rd}$ sequence, we observed a learning process
+similar to the 1$^\textrm{st}$ sequence: initially, the robot quickly learned
+to balance in pitch, and then to balance in roll too, but still tended to
+wander off until it pulled the support rope taut. Changing the loss function
+to penalise off-centre positions more heavily did not affect its behaviour. 
 
 TODO: To be continued\dots
 
