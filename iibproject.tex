@@ -296,7 +296,8 @@ and to McHutchon's work on the real 2D system, we have a lot of information on
 which choices can work well in these situations, and which are most important.
 
 Some of these decisions were made on the results of various training
-sequences, which are presented in Section~\ref{sec:learning_results}.
+sequences, which are presented and explained in
+Section~\ref{sec:learning_results}.
 
 \subsubsection{GPR Implementation}
 The GPR system has many configurable parameters, but fortunately the form used
@@ -372,6 +373,51 @@ in effect modelling it as a 2$^\textrm{nd}$ order Markov chain:
 This significantly improved the accuracy of the dynamics model, which in turn
 suggests that unobserved states are significant in the behaviour of the real
 unicycle. 
+
+\subsubsection{Initial State Distribution}
+\label{sec:initial_state_distribution}
+
+In order to simulate the unicycle, the dynamics model requires an initial
+distribution, which it can then transform with the estimated transition
+function $\boldsymbol{f}$. For the RMLC system used, this must be a sum of a
+finite number of multivariate Gaussian distributions. Using a 1$^\textrm{st}$
+order Markov model, a simple and effective choice is a single Gaussian with a
+diagonal covariance matrix representing the variety of possible initial
+states.
+
+When we switched to a 2$^\textrm{nd}$ order Markov model, we chose to keep the
+same model, effectively modelling the two successive states as independent.
+However, this is an extremely non-physical distribution---since the 95\%
+confidence interval on initial position is $[-0.2\textrm{m}, 0.2\textrm{m}]$,
+this initial state distribution suggested it was very likely that the unicycle
+would move 0.4 metres perpendicular to the wheel in 0.05 seconds: clearly
+impossible.
+
+Upon realising this, a new initial state distribution was chosen, based on the
+model that the two previous states are the same, but there is some small
+measurement error, representing the fact that the states are in reality
+different, and also that this model is not quite true.
+\begin{IEEEeqnarray*}{rCl}
+  q_{i,\textrm{initial}} &\sim& \mathcal{N}(\mu_i, \sigma_i^2) \\
+  q_i[-1] &\sim& q_{i,\textrm{initial}} + \mathcal{N}(0,
+  \sigma_{\varepsilon,i}) \\
+  q_i[0] &\sim& q_{i,\textrm{initial}} + \mathcal{N}(0,
+  \sigma_{\varepsilon,i}) \\
+  \begin{bmatrix}
+    q_i[-1] \\
+    q_i[0]
+  \end{bmatrix} &\sim& \mathcal{\boldsymbol{N}}\left(
+  \begin{bmatrix}
+    \mu_i \\ \mu_i
+  \end{bmatrix},
+  \begin{bmatrix}
+    \sigma_i^2 + \sigma_{\varepsilon,i}^2 & \sigma_i^2 \\
+    \sigma_i^2 & \sigma_i^2 + \sigma_{\varepsilon,i}^2
+  \end{bmatrix}\right)
+  \end{IEEEeqnarray*}
+Since at this point several trials had already been performed, we were able
+to estimate $\mu_i$, $\sigma_i$ and $\sigma_{\varepsilon,i}$ from the trial
+data.
 
 \subsubsection{Controller Form}
 
