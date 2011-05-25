@@ -471,7 +471,12 @@ penalise the distances from the origin, $x_c$ and $y_c$, to prevent the system
 from driving the robot very fast to enhance stability.
 
 We used a similar loss function structure, with characteristic widths of
-$9^\circ$ on the angles, and $\frac{2}{3}$ metres on the distances.  Unlike
+$9^\circ$ on the angles, and $\frac{1}{2}$ metres on the
+distances.\footnote{We initially used a distance loss width of 1 metre, but
+upon realising how little room the unicycle had to manoeuvre we reduced the
+width to $\frac{1}{2}$ metres to represent the importance of staying within
+the rope's range. This did not appear to have a dramatic effect on the
+resulting controllers.} Unlike
 the ideal unicycle, the real unicycle has an upper limit on the flywheel
 speed, so the ``spinning-top'' strategy is not viable, and it is not important
 to penalise the flywheel speed.
