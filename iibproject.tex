@@ -45,7 +45,7 @@
 
 In 2004 and 2005, a robotic unicycle was built by
 Mellors\cite{ref:mellors} and
-Lamb\cite{ref:Lamb} as a Master's project, using a powered wheel and horizontal flywheel
+Lamb\cite{ref:lamb} as a Master's project, using a powered wheel and horizontal flywheel
 designed to emulate the actuation used by a human rider, but they lacked the
 time to design a controller. Several years later, D'Souza-Mathew\cite{ref:dsm}
 and then Forster\cite{ref:forster} attempted to stabilise it by adding
@@ -81,24 +81,24 @@ learn the dynamics of the system, allowing it to make predictions while
 keeping track of the certainty of its knowledge about the system.
 
 Previously, McHutchon had successfully applied RMLC to the unicycle with
-training wheels---this had required several changes to the hardware of the
-unicycle. His work gave a clear idea of necessary changes to the hardware and
-software of the unicycle in order to enable it to learn to balance without
-training wheels. The first aim of the project was to install a new MEMS
-gyroscope and an Arduino microcontroller, and then to repeat McHutchon's
-stabilisation experiments. These changes solved a number of problems with the
-original system, including noisy angle measurements and voltage supply
-problems. We were also able to take advantage of the flexibility of the new
-Arduino-based architecture and improve the safety and ease of use of the
-system.
+training wheels---this had required several changes to the
+hardware of the unicycle\cite{ref:mchutchon}. His work gave a clear idea of necessary changes to
+the hardware and software of the unicycle in order to enable it to learn to
+balance without training wheels. The first aim of the project was to install a
+new MEMS gyroscope and an Arduino microcontroller, and then to repeat
+McHutchon's stabilisation experiments. These changes solved a number of
+problems with the original system, including noisy angle measurements and
+voltage supply problems. We were also able to take advantage of the
+flexibility of the new Arduino-based architecture and improve the safety and
+ease of use of the system.
 
-After making these changes, the RMLC system was able to successfully the
-unicycle with training wheels. Additionally, we found we could significantly
-improve the performance of the RMLC-trained controllers by reducing the
-timestep at which the system is discretised, and by modelling the discretised
-system as a 2$^\textrm{nd}$ order Markov Chain. This led to confident and
-accurate predictions about the performance of the unicycle, and these
-techniques would be critical in modelling the unicycle without training
+After making these changes, the RMLC system was able to successfully balance
+the unicycle (with training wheels). Additionally, we found we could
+significantly improve the performance of the RMLC-trained controllers by
+reducing the timestep at which the system is discretised, and by modelling the
+discretised system as a 2$^\textrm{nd}$ order Markov Chain. This led to
+confident and accurate predictions about the performance of the unicycle, and
+these techniques would be critical in modelling the unicycle without training
 wheels.
 
 The next step was to prepare the hardware and software for balancing the
@@ -117,10 +117,10 @@ At this point, we started training the unicycle to balance. During the first
 process, the system became capable of designing controllers that could
 reliably keep the unicycle vertical until it reached the edge of its range and
 was pulled over by the rope. Although the learned dynamics model could
-accurately predict the motion of the unicycle, the system was unable to design
-a controller that could stay in one place. This turned out to be the result of
-a bug in the position tracking---the controller did not have sufficient
-information to control its position.
+accurately predict the motion of the unicycle, the system was unable to
+produce a controller that could stay in one place. This turned out to be the
+result of a bug in the position tracking---the controller did not have
+sufficient information to control its position.
 
 Once this problem had been fixed, a second training process was initiated, but
 failed due to a sensor problem. Finally, a third training process was
@@ -186,9 +186,10 @@ non-linearities like motor dead-zones and wheel friction that are present in
 any real-world system, and attempt to design a controller to stabilise the
 idealised system. In many cases, this approach is very successful. However,
 D'Souza-Mathew and Forster found that their model was invalid since the
-unicycle's motor drive didn't react faster enough. Since the 3D unicycle's
-dynamics are so complicated, Vos and Naveh had to use
-complex, approximate techniques to model the unicycle in a useful manner.
+unicycle's motor drive didn't react fast enough. Vos's approach neglected all
+Coriolis and gyroscopic effects, and failed to balance in trials where these
+were important. Naveh's more complex approach required multiple control laws
+for different regions of state space, and was only tested in simulation.
 
 An alternative ``intelligent'' approach to control involves learning the
 dynamics of the system directly, instead of relying on assumptions and
@@ -383,27 +384,70 @@ function $\boldsymbol{f}$. For the RMLC system used, this must be a sum of a
 finite number of multivariate Gaussian distributions. Using a 1$^\textrm{st}$
 order Markov model, a simple and effective choice is a single Gaussian with a
 diagonal covariance matrix representing the variety of possible initial
-states.
+states. This is represented in Figure~\ref{fig:initial_order1_diag}.
 
-When we switched to a 2$^\textrm{nd}$ order Markov model, we chose to keep the
-same model, effectively modelling the two successive states as independent.
-However, this is an extremely non-physical distribution---since the 95\%
-confidence interval on initial position is $[-0.2\textrm{m}, 0.2\textrm{m}]$,
-this initial state distribution suggested it was very likely that the unicycle
-would move 0.4 metres perpendicular to the wheel in 0.05 seconds: clearly
-impossible. A result of this was that the behaviour in trials was very
-different to the expected behaviour, as shown in
-Figure~\ref{fig:pred_dist_orig}, despite the fact that when given the initial
-state, the trial followed a very similar path to the prediction, as
-demonstrated by Figure~\ref{fig:pred_dist_single}.\footnote{The
-trial actually follows a trajectory slightly outside the prediction's
-confidence bounds: this is may be due to measurement noise affecting the
-initial state estimate.}
+\begin{figure}[htpb]
+  \begin{center}
+    \subfigure[Independent variables]{
+      \includegraphics[width=4.5cm]{initial_order1_diag.pdf}
+      \label{fig:initial_order1_diag}
+    }
+    \subfigure[Independence between same variable at different times]{
+      \includegraphics[width=4.5cm]{initial_order2_diag.pdf}
+      \label{fig:initial_order2_diag}
+    }
+    \subfigure[Correlation between same variable at different times]{
+      \includegraphics[width=4.5cm]{initial_order2_corr.pdf}
+      \label{fig:initial_order2_corr}
+    }
+    \end{center}
+    \caption{Contours of various Gaussian initial state distributions}
+    \label{fig:initial_state}
+    \end{figure}
+
+When we switched to a 2$^\textrm{nd}$ order Markov model, the initial
+augmented state \\ $\boldsymbol{q}_2[0] = [\boldsymbol{q}[-1]\
+\boldsymbol{u}[-1]\ \boldsymbol{q}[0]]^\textrm{T}$ contains two successive
+states. The simplest choice is to use the same independence assumption as
+before, as illustrated in Figure~\ref{fig:initial_order2_diag}.  However, this
+is an extremely non-physical distribution---the illustration shows how this
+implies the possibility of crossing the entire region of possible starting
+positions in a single timestep.\footnote{With the 0.05s timestep used in our
+experiment, this suggests a possible starting velocity of 6 m s$^{-1}$, which
+was not that case.} This leads to rapid growth in uncertainty in the position,
+as shown in Figure~\ref{fig:pred_dist_orig}, and also means that the behaviour
+in the trial bore little resemblance to the highly uncertain prediction.
+However,  when given the exact initial state, the dynamics model's prediction
+is very similar to the trial's trajectory, as demonstrated by
+Figure~\ref{fig:pred_dist_single}.\footnote{The trial actually follows a
+trajectory slightly outside the prediction's confidence bounds: this is may be
+due to measurement noise affecting the initial state estimate, as well as
+inaccuracy in the dynamics model.}
+
+\begin{figure}[htpb]
+  \begin{center}
+    \subfigure[Prediction with original initial distribution]{
+      \includegraphics[height=7cm]{pred_dist_orig.pdf}
+      \label{fig:pred_dist_orig}
+    }
+    \subfigure[Prediction with trial's initial state]{
+      \includegraphics[height=7cm]{pred_dist_single.pdf}
+      \label{fig:pred_dist_single}
+    }
+    \subfigure[Prediction with new initial distribution]{
+      \includegraphics[height=7cm]{pred_dist_new.pdf}
+      \label{fig:pred_dist_new}
+    }
+    \end{center}
+    \caption{Effect of initial distribution on predictions}
+    \label{fig:pred_dist}
+    \end{figure}
 
 Upon realising this, a new initial state distribution was chosen, based on the
 model that the two previous states are the same, but there is some small
 measurement error, representing the fact that the states are in reality
-different, and also that this model is not quite true.
+different, and also that this model is not quite true. This distribution is
+depicted in Figure~\ref{fig:initial_order2_corr}.
 \begin{IEEEeqnarray*}{rCl}
   q_{i,\textrm{initial}} &\sim& \mathcal{N}(\mu_i, \sigma_i^2) \\
   q_i[-1] &\sim& q_{i,\textrm{initial}} + \mathcal{N}(0,
@@ -426,25 +470,6 @@ Since at this point several trials had already been performed, we were able
 to estimate $\mu_i$, $\sigma_i$ and $\sigma_{\varepsilon,i}$ from the trial
 data. Using this new initial distribution, the expected behaviour is much more
 like the observed trial, as shown in Figure~\ref{fig:pred_dist_new}.
-
-\begin{figure}[htpb]
-  \begin{center}
-    \subfigure[Prediction with original initial distribution]{
-      \includegraphics[height=7cm]{pred_dist_orig.pdf}
-      \label{fig:pred_dist_orig}
-    }
-    \subfigure[Prediction with trial's initial state]{
-      \includegraphics[height=7cm]{pred_dist_single.pdf}
-      \label{fig:pred_dist_single}
-    }
-    \subfigure[Prediction with new initial distribution]{
-      \includegraphics[height=7cm]{pred_dist_new.pdf}
-      \label{fig:pred_dist_new}
-    }
-    \end{center}
-    \caption{Effect of initial distribution on predictions}
-    \label{fig:pred_dist}
-    \end{figure}
 
 \subsubsection{Controller Form}
 
@@ -973,17 +998,20 @@ The response of a DC motor can be well modelled as \cite{ref:6302}:
   \frac{\Omega_\textrm{motor}(s)}{V(s)} = \frac{K_t}{(R+Ls)(Js+b)+K_t^2}
   \end{equation*}
 
-where we define
+where we define:
 
-\begin{description}
-  \item[$\omega$] Speed of motor shaft
-  \item[$V$] Motor input voltage
-  \item[$K_t$] Motor torque constant
-  \item[$R$] Motor armature resistance
-  \item[$L$] Motor armature inductance (usually negligible)
-  \item[$J$] Moment of inertia of object on motor shaft
-  \item[$b$] Damping on motor shaft (sometimes negligible)
-    \end{description}
+\begin{tabular}{l | l}
+  Symbol & Description \\
+  \hline
+  $\omega_\textrm{motor}(t)$ & Speed of motor shaft \\
+  $v(t)$ & Motor input voltage \\
+  $\Omega_\textrm{motor}(s), V(s)$ & Laplace transforms of the above \\
+  $K_t$ & Motor torque constant \\
+  $R$ & Motor armature resistance \\
+  $L$ & Motor armature inductance (usually negligible) \\
+  $J$ & Moment of inertia of object on motor shaft \\
+  $b$ & Damping on motor shaft (sometimes negligible) \\
+  \end{tabular}
 
 The effect of the gear train is analogous to that of a transformer: the
 flywheel MoI, $J_f$ appears to the motor as an MoI of $J = \frac{J_f}{n^2}$.
