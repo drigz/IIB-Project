@@ -287,6 +287,52 @@ Section~\ref{sec:random_trials}) and then iterating between training a new
 controller and gathering data with it, continuing until steady-state is
 reached, is referred to as a training \textbf{sequence}.
 
+\subsection{Prediction Plots}
+\label{sec:prediction_plots}
+
+In this approach, knowledge about the state of the system is represented by a
+multivariate Gaussian distribution over the states. The dynamics model is used
+to map the distribution at one timestep to the distribution at the next
+timestep. Repeated application yields a series of distributions at different
+times representing possible futures of the system. To represent this in a
+useful fashion, we can marginalise the multivariate Gaussians to get the
+distribution of a single variable at a given time, and then consider a 95\%
+confidence interval:
+
+\[
+  P(\mathcal{N}(\mu, \sigma^2) \in [\mu-2\sigma, \mu+2\sigma]) \approx 95\%
+\]
+
+We can then plot these confidence intervals as a function of time. This is
+shown as a filled region in Figure~\ref{fig:pred_ex}. The mean of the
+predicted distribution is shown as a dashed line. These predictions are for
+the controller trained by the optimisation procedure described above. After
+the optimal controller has been trained for the learned dynamics model, a
+trial on the real system is conducted to gather more data and improve the
+dynamics model. This trial is shown on both plots as solid line.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \subfigure[Prediction of a specific trajectory]{
+      \includegraphics[width=7cm]{pred_ex_specific.pdf}
+      \label{fig:pred_ex_specific}
+    }
+    \subfigure[Prediction of a generic trajectory]{
+      \includegraphics[width=7cm]{pred_ex_generic.pdf}
+      \label{fig:pred_ex_generic}
+    }
+    \end{center}
+    \caption{Predictions of the unicycle's pitch, and the following trial}
+    \label{fig:pred_ex}
+    \end{figure}
+
+Note the difference between the two plots. Figure~\ref{fig:pred_ex_specific}
+shows the prediction when given the initial state of the trial. The
+uncertainty is limited to measurement error initially, but grows due to
+uncertainty in the dynamics model. Figure~\ref{fig:pred_ex_generic} shows the
+prediction starting with a distribution over possible initial states---it is
+this distribution over trajectories that is optimised by the training process.
+
 \subsection{Practical Concerns}
 
 There are many different decisions to make when implementing the RMLC
@@ -296,9 +342,9 @@ and used RMLC to train a controller for this ideal unicycle. Thanks to this,
 and to McHutchon's work on the real 2D system, we have a lot of information on
 which choices can work well in these situations, and which are most important.
 
-Some of these decisions were made on the results of various training
-sequences, which are presented and explained in
-Section~\ref{sec:learning_results}.
+In many cases, these choices were made after realising deficiencies in the
+performance of RMLC on either the 2D system or the 3D unicycle, as explained
+in Section~\ref{sec:learning_results}.
 
 \subsubsection{GPR Implementation}
 The GPR system has many configurable parameters, but fortunately the form used
@@ -371,9 +417,43 @@ in effect modelling it as a 2$^\textrm{nd}$ order Markov chain:
   \end{array} \right]
 \]
 
-This significantly improved the accuracy of the dynamics model, which in turn
-suggests that unobserved states are significant in the behaviour of the real
-unicycle. 
+Figure~\ref{fig:order1_trained_single} shows a prediction for a single
+trajectory using the 1$^\textrm{st}$ order model, and
+Figure~\ref{fig:order2_untrained_single} shows a prediction for the same
+trajectory and controller with the 2$^\textrm{nd}$ order model.\footnote{It
+is puzzling that the predicted trajectories go in the opposite direction
+initially. It is possible that noise in the measured angular velocity misleads
+the 1$^\textrm{st}$ order model, whereas the 2$^\textrm{nd}$ order model gets
+two consecutive states, making the initial motion of the unicycle more clear.
+Also, the initial state(s) come from a rollout using a different controller.
+As such, the second state provided to the 2$^\textrm{nd}$ order model could
+not be predicted by the 1$^\textrm{st}$ order model since it doesn't know the
+controller.} Initially, it is much more certain about the motion of the
+unicycle, although this certainty quickly diverges. When the controller is
+optimised for the more accurate 2$^\textrm{nd}$ order model, the rate of
+uncertainty growth is much reduced, as Figure~\ref{fig:order2_trained_single}
+shows.
+
+\begin{figure}[htbp]
+  \begin{center}
+    \subfigure[1$^\textrm{st}$ order, optimal controller]{
+      \includegraphics[width=4.5cm]{order1_trained_single.pdf}
+      \label{fig:order1_trained_single}
+    }
+    \subfigure[2$^\textrm{nd}$ order, controller of
+    Figure~\ref{fig:order1_trained_single}]{
+      \includegraphics[width=4.5cm]{order2_untrained_single.pdf}
+      \label{fig:order2_untrained_single}
+    }
+    \subfigure[2$^\textrm{nd}$ order, optimal controller]{
+      \includegraphics[width=4.5cm]{order2_trained_single.pdf}
+      \label{fig:order2_trained_single}
+    }
+    \end{center}
+    \caption{Pitch angle predictions with 1$^\textrm{st}$ and $^\textrm{nd}$
+    order dynamics models}
+    \label{fig:order_1_and_2}
+    \end{figure}
 
 \subsubsection{Initial State Distribution}
 \label{sec:initial_state_distribution}
@@ -515,6 +595,22 @@ first-order IIR filter on the original state:
 This allows the RMLC system to create basic low or high-pass filters in the
 controller, and this additional freedom improved both the loss function and
 the subjective quality of the controllers trained.
+Figure~\ref{fig:con1_and_con2} shows the effect of this change.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \subfigure[Control input: $\boldsymbol{q}{[n]}$]{
+      \includegraphics[width=7cm]{order2_trained_con1_generic.pdf}
+      \label{fig:order2_trained_con1}
+    }
+    \subfigure[Control input: $\boldsymbol{q}_2{[n]}$]{
+      \includegraphics[width=7cm]{order2_trained_con2_generic.pdf}
+      \label{fig:order2_trained_con2}
+    }
+    \end{center}
+    \caption{Effect of providing augmented state to controller}
+    \label{fig:con1_and_con2}
+    \end{figure}
 
 \subsubsection{Gathering Initial Data}
 \label{sec:random_trials}
@@ -601,6 +697,38 @@ low-pass effect of the system, reducing the effect of noise. However,
 upgrading the sensors didn't seem to change this, so there is possibly another
 cause.
 
+It is hard to provide a clear demonstration of the advantage of the faster
+timestep, since trials must be re-conducted and so the datasets are different.
+In addition, since the training sequence with a 50ms timestep developed better
+controllers, trials lasted longer and more data was gathered. As such,
+to compare dynamics models based on similar numbers of datapoints, we must
+provide fewer trial logs for the 50ms dynamics model. This means that it has
+had less of a change to try a variety of strategies, and necessarily is less
+certain about the dynamics of the system. That said,
+Figure~\ref{fig:timestep_effect} shows the effect of reducing the timestep,
+comparing dynamics model with similar numbers of points
+(Figures \ref{fig:angle_100ms} and \ref{fig:angle_50ms}) and after the same
+number of trials (Figures \ref{fig:angle_100ms} and \ref{fig:angle_50ms_8th}).
+
+\begin{figure}[htpb]
+  \begin{center}
+    \subfigure[100ms, 8 trials, 542 points]{
+      \includegraphics[width=4.5cm]{angle_100ms.pdf}
+      \label{fig:angle_100ms}
+    }
+    \subfigure[50ms, 5 trials, 556 points]{
+      \includegraphics[width=4.5cm]{angle_50ms.pdf}
+      \label{fig:angle_50ms}
+    }
+    \subfigure[50ms, 8 trials, 824 points]{
+      \includegraphics[width=4.5cm]{angle_50ms_8th.pdf}
+      \label{fig:angle_50ms_8th}
+    }
+    \end{center}
+    \caption{Predictions with datasets at 100ms timesteps and 50ms timesteps}
+    \label{fig:timestep_effect}
+    \end{figure}
+
 \section{Hardware and Software}
 
 When the project started, some of the required tasks were already clear, as a
@@ -646,6 +774,7 @@ followed by greater detail where necessary.
     \caption{Summary of changes to unicycle hardware}
     \label{fig:hardware}
     \end{figure}
+
 
 \subsection{Sensing}
 
@@ -885,7 +1014,7 @@ This became more important when we added a quadrature encoder for the
 flywheel: the sensors used are much less accurate than those on the wheel.
 There are only 72 pulses per revolution, and there is significant
 non-uniformity around the wheel. This means that the first method would have a
-quantisation error of 125$^\circ/$s, and the second method would only be
+quantisation error of 94$^\circ/$s, and the second method would only be
 accurate to within around 50\%. This is unacceptable accuracy.
 
 After reading a comparative analysis of various methods \cite{ref:encspeed},
@@ -1236,6 +1365,7 @@ trials, in an attempt to detect signs of corrupted data.
 
 
 \subsubsection{I$^2$C Communications}
+\label{sec:i2c_comms}
 
 The ITG-3200 and ADXL345 both reside on the same I$^2$C bus, a digital
 communications protocol that allows the Arduino to read and write data to its
@@ -1256,16 +1386,36 @@ signalled, and the data can be discarded.
 \section{Results of Learning}
 \label{sec:learning_results}
 
-After implementing the necessary subset of the new hardware and software, we
-recreated the results of McHutchon's work on the 2D system. This initially
-resulted in failure, and helped us to find bugs in our implementations and to
-understand the RMLC system. After a iterating through a few sequences of
-trial and improvement, we had discovered various techniques that would help us
-stabilise the 3D unicycle. We then removed the training wheels, wrote and
-built the remaining parts of the unicycle and started training the 3D
-unicycle.
+Michaelmas term was spent installing the new hardware and rewriting the
+software---about 2000 lines of code. In particular, about a week was spent
+trying to debug the I$^2$C communications problem described in
+Section~\ref{sec:i2c_comms}. We also discussed potential solutions for
+protecting the unicycle from falls, and then designed the wooden skirt, which
+took several days in the workshop to construct.
+
+In Lent term, we learned how to use the RMLC system, and then applied it to
+the 2D system. We required 4 full training sequences to reach satisfactory
+performance, each requiring several days of trials interspersed with
+controller training. When they failed, we had to look into the results to
+determine exactly why they failed and how the performance could be improved.
+After a few weeks, we had investigated the changes necessary to achieve good
+performance, and started working on the hardware and software necessary for 3D
+balance: another 1500 lines of code, along with the flywheel controller and
+sensor, installing the accelerometer, etc. At the end of the Lent term, we
+attempted to start training, but had to rebuild the skirt to make it lighter,
+requiring another few days in and out of the workshop. When this failed, we
+chose to use the rope, and by the middle of the Easter vacation we had started
+training in earnest.
+
+These training sequences took much longer---around 1--2 weeks each due to
+increased computational requirements---and when term re-started we were only
+able to test the system before 9am and after 5pm. After the causes of the
+failure of the first two training sequences had been determined, resolved
+and tested, we were able to run a third sequence, although by this point very
+little time remained.
 
 \subsection{Learning the 2D System}
+\label{sec:learning_2d}
 
 McHutchon's report describes the processes that the RMLC system goes
 through when successfully learning to balance the 2D system. Our aim in
@@ -1295,12 +1445,12 @@ balance, and it never gathers any data suggesting that it can balance.
 The second sequence fixed this error and, as shown in
 Figure~\ref{fig:2nd_sequence}, this sequence successfully generated
 controllers than could balance the unicycle for 15 seconds, with no sign of
-growing instability.\footnote{The blue lines show the prediction: the mean is
-dashed and the 95\% confidence bounds are solid. The red line shows the trial
-result.} However, this is despite the fact that uncertainty the prediction
-grows extremely rapidly. Clearly, the dynamics model has managed to capture
-enough of the dynamics of the real system to allow balancing the unicycle, yet
-is extremely uncertain about its predictions.
+growing instability.\footnote{These prediction plots are described in
+Section~\ref{sec:prediction_plots}.} However, this is despite the fact that
+the uncertainty of the prediction grows extremely rapidly. Clearly, the
+dynamics model has managed to capture enough of the dynamics of the real
+system to allow balancing the unicycle, yet is extremely uncertain about its
+predictions.
 
 \begin{figure}[htpb]
   \begin{center}
@@ -1336,7 +1486,7 @@ Figure~\ref{fig:2d_50ms}---much improved, but still inadequate.
     \end{figure}
 
 During trials, we observed the unicycle shaking and a lot of noise coming
-from the gear-train. We suspected that problems like gear backlash were
+from the gear train. We suspected that problems like gear backlash were
 contributing to the poor performance of the system, and so we gave the dynamic
 model access to two consecutive states when predicting (as described in
 Section~\ref{sec:state_vector}). This further improved the confidence of the
@@ -1347,8 +1497,8 @@ cycle oscillation, slowly falling one way, before picking itself up and
 returning to slowly falling.
 
 This poor performance of the resulting controller is likely due to the large
-dead-zone in the motor: on a PWM scale from -100\% to 100\%, there is a
-dead-zone from -10\% to 10\%. Figure~\ref{fig:limit_cycle} shows a trial
+dead-zone in the motor: on a PWM scale from $-100\%$ to 100\%, there is a
+dead-zone from $-10\%$ to 10\%. Figure~\ref{fig:limit_cycle} shows a trial
 exhibiting stable limit cycle behaviour, along with the motor command and
 dead-zone. The motor command is within the dead zone for quite a significant
 duration of the cycle. There are a number of possibilities for remedying this
@@ -1428,15 +1578,54 @@ wander off until the support rope would allow it no farther. Changing the loss
 function to penalise off-centre positions more heavily did not significantly
 affect its behaviour. 
 
+At this stage, after testing 13 controllers and gathering around 30 seconds
+worth of experience with the system, we noticed the problem with the initial
+state distribution described in
+Section~\ref{sec:initial_state_distribution}. After fixing this problem, the
+simulations represented reality much better, and the RMLC system was able to
+train better controllers. After 3 more trials, the trained controller could
+keep the unicycle upright for the optimisation horizon of 5 seconds, as shown
+in Figure~\ref{fig:3d_3rd_trial_17}. However, it is clear that the dynamics
+model is not fully capturing the behaviour of the unicycle: the real trial's
+trajectory makes large excursions outside of the predicted confidence
+intervals. By this point, performing a single simulation took more than 20
+minutes---typically, several hundred simulations are required to train an
+optimal controller.
+
+\begin{figure}[htpb]
+  \begin{center}
+    \includegraphics[height=8cm]{3d_3rd_trial_17.pdf}
+    \end{center}
+    \caption{Prediction and trial for the 17$^\textrm{th}$ controller of the
+    3$^\textrm{rd}$ 3D training sequence}
+    \label{fig:3d_3rd_trial_17}
+    \end{figure}
+
 TODO: To be continued\dots
 
 \section{Conclusions}
 
 TODO
 
+A major part of this project was the work on the unicycle's hardware and
+software. Some of these tasks, such as building a controller and sensor for
+the flywheel, were known from the start, whereas others, such as preventing
+the toothed belt from slipping, were unexpected. However, by the end of the
+project, the unicycle worked reasonably reliably, and the limited success of
+the RMLC-trained controllers demonstrates that our efforts to develop a
+controllable system were successful: the unicycle now has all sensors and
+actuators necessary for balancing.
+
+That said, the hardware leaves something to be desired. In particular, the
+flywheel speed sensing is very noisy and the gear trains for the flywheel and
+wheel both have sticking points, where the gears jam and the wheel is
+considerably harder to turn. Despite these problems, and others, the 
+
 Outline:
 
 \begin{itemize}
+
+
   \item Most work was directed at hardware and software, not machine learning.
   \item Even with low-quality sensors, GPs did a good job of modelling system
     over ~5 seconds with very little experience.
@@ -1447,6 +1636,7 @@ Outline:
   \item When those conditions are satisfied, RMLC does a very good job of
     finding controllers capable of achieving a given task, without prior
     expert knowledge.
+  \item Advantages of RMLC over conventional control.
     \end{itemize}
 
 \section{Further Work}
