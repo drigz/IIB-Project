@@ -11,6 +11,7 @@
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{multirow}
 \usepackage{import}
+\usepackage{mdwlist}
 
 \usepackage[retainorgcmds]{IEEEtrantools}
 
@@ -38,8 +39,6 @@
 \pagestyle{plain}
 \tableofcontents
 \newpage
-
-\setlength{\parskip}{6pt plus 1pt minus 1pt}
 
 \section*{Technical Abstract}
 
@@ -125,7 +124,22 @@ sufficient information to control its position.
 Once this problem had been fixed, a second training process was initiated, but
 failed due to a sensor problem. Finally, a third training process was
 undertaken, which followed the same initial process of learning to balance as
-the first. TODO: continue\dots
+the first. To prevent it from reaching the limit of its restricted range, the
+loss function was changed to penalise off-centre positions very harshly,
+although after this point, the system appeared to sacrifice stability in
+favour of controllers that would remain near the centre. This produced
+controllers that could frequently balance for 2--3 seconds, but only rarely
+longer. The training sequence could not be continued due to the computational
+cost of controller training, and due to the time limitations of the project.
+
+Despite the failure to produce a controller that could reliably, indefinitely
+balance the unicycle, the RMLC system produced some promising results,
+including controllers that could control pitch and roll angles reliably but
+fell foul of the limited range of positions, and one trial in which the
+unicycle remained upright for 5 seconds. It is hoped that future work on the
+system will able to resolve some of the various issues that may have caused
+problems for the RMLC controllers, and finally achieve the task of balancing
+the unicycle.
 
 \newpage
 \section{Introduction}
@@ -738,7 +752,7 @@ required to fix issues that had been turned up by the previous year's work
 and to prepare it for 3D balance. A brief summary of the changes is below,
 followed by greater detail where necessary.
 
-\begin{itemize}
+\begin{itemize*}
 
   \item The cumbersome FPGA-based controller used previously was replaced with
     an Arduino microcontroller, allowing changes to be made faster and more
@@ -765,7 +779,7 @@ followed by greater detail where necessary.
   \item To improve safety, the motor is disabled when the operator presses a
     switch on the chassis or when the unicycle nears the ground.
 
-\end{itemize}
+\end{itemize*}
 
 \begin{figure}[htpb]
   \begin{center}
@@ -1103,7 +1117,7 @@ able to point in the direction in which it is falling, before it has fallen
 too far to recover.  We considered various possible causes for the slow
 turning:
 
-\begin{itemize}
+\begin{itemize*}
   \item Adding the skirt had increased the moment of inertia (MoI), making it
     spin slowly.
   \item Friction with the ground was causing it to turn too slowly.
@@ -1112,7 +1126,7 @@ turning:
     enough, even without the above effects.
   \item The flywheel motor was insufficiently powerful, even without the above
     effects.
-    \end{itemize}
+    \end{itemize*}
 
 To try to quantify this, we suspended the robot above the ground, and tested
 the response of the system to a step increase in flywheel command. We then
@@ -1575,75 +1589,175 @@ At the start of the 3$^\textrm{rd}$ sequence, we observed a learning process
 similar to the 1$^\textrm{st}$ sequence: initially, the robot quickly learned
 to balance in pitch, and then to balance in roll too, but still tended to
 wander off until the support rope would allow it no farther. Changing the loss
-function to penalise off-centre positions more heavily did not significantly
-affect its behaviour. 
+function to penalise off-centre positions more heavily did not appear to
+significantly affect the produced controllers.
 
 At this stage, after testing 13 controllers and gathering around 30 seconds
 worth of experience with the system, we noticed the problem with the initial
-state distribution described in
-Section~\ref{sec:initial_state_distribution}. After fixing this problem, the
-simulations represented reality much better, and the RMLC system was able to
-train better controllers. After 3 more trials, the trained controller could
-keep the unicycle upright for the optimisation horizon of 5 seconds, as shown
-in Figure~\ref{fig:3d_3rd_trial_17}. However, it is clear that the dynamics
-model is not fully capturing the behaviour of the unicycle: the real trial's
-trajectory makes large excursions outside of the predicted confidence
-intervals. By this point, performing a single simulation took more than 20
-minutes---typically, several hundred simulations are required to train an
-optimal controller.
+state distribution described in Section~\ref{sec:initial_state_distribution}.
+After fixing this problem, the simulations represented reality much better,
+and the RMLC system was able to train better controllers. After 3 more trials,
+the trained controller could keep the unicycle upright for the optimisation
+horizon of 5 seconds, as shown in Figure~\ref{fig:3d_3rd_trial_17}. However,
+it is clear that the dynamics model is not fully capturing the behaviour of
+the unicycle: the real trial's trajectory makes large excursions outside of
+the predicted confidence intervals. Furthermore, trials will consistently
+follow this unpredicted trajectory, as shown in
+Figure~\ref{fig:3d_3rd_many_17}, which shows the trajectories of 9 trials
+with the same controller. It also shows that the 5 second trial was
+unrepresentative of the performance of the controller.
 
 \begin{figure}[htpb]
   \begin{center}
-    \includegraphics[height=8cm]{3d_3rd_trial_17.pdf}
+    \subfigure[Single trial]{
+      \includegraphics[width=7cm]{3d_3rd_trial_17.pdf}
+      \label{fig:3d_3rd_trial_17}
+    }
+    \subfigure[Many trials]{
+      \includegraphics[width=7cm]{3d_3rd_many_17.pdf}
+      \label{fig:3d_3rd_many_17}
+    }
     \end{center}
-    \caption{Prediction and trial for the 17$^\textrm{th}$ controller of the
+    \caption{Prediction and trials for the 17$^\textrm{th}$ controller of the
     3$^\textrm{rd}$ 3D training sequence}
-    \label{fig:3d_3rd_trial_17}
     \end{figure}
 
-TODO: To be continued\dots
+By this point, the trials cumulatively represented about 35 seconds of
+experience with the system, and performing a single simulation took more than 20
+minutes---typically, several hundred simulations are required to train an
+optimal controller. We conducted 2 more trials, but performance did not
+improve significantly.
+
+\subsection{Possible Reasons for Failure of Long-Term 3D Balance}
+
+The RMLC system did achieve limited success in the 3D balance problem. In the
+1$^\textrm{st}$ sequence, when it was incapable of controlling its position, the controllers
+were capable of controlling angle well, balancing until the unicycle reached
+the end of its rope. In the 3$^\textrm{rd}$ sequence, it initially repeated the feat of
+balancing, then produced controllers which would stay within the range of the
+rope, but could only rarely remain upright for more than 2--3 seconds.
+
+In contrast, in the simulations conducted by Rasmussen, RMLC was able to
+develop a quadratic controller that could balance the ideal unicycle
+indefinitely with a comparable amount of experience. Since the ideal unicycle
+model was developed to approximate the dynamics of the real unicycle, it was
+hoped that these results would be replicated. However, there are a number of
+differences between the ideal unicycle and the real system which may be to
+blame for the unsatisfactory performance.
+
+\subsubsection{Restricted Range}
+
+The smooth balance, achieved in the early stages of the 1$^\textrm{st}$ and
+3$^\textrm{rd}$ sequences, was very promising. It showed that the system was
+capable of balancing the unicycle, while also being able to track its motion
+in the plane, as suggested by Figure~\ref{fig:3d_1st_sequence}. This would
+suggest that it would be reasonably simple for the system to generate the
+correct turning commands to follow a circular path around the target.
+
+It is possible that the reason the system then seemed to lose the ability to
+reliably balance the unicycle after this point is that it was unable to follow
+such a path and remain within the very limited range of the rope. However, the
+failure of the dynamics model to predict the unreliable balance, shown by
+Figure~\ref{fig:3d_3rd_many_17}, suggests that this is not entirely to blame
+for the performance of the system.\footnote{Of course, it is possible that the
+only reason the dynamics model failed towards the end of the 3$^\textrm{rd}$
+sequence is that we changed the initial state distribution and loss function
+during the sequence, and it just needed more data to get a handle on the
+dynamics.  However, the computational cost of the RMLC system means that
+adding more data was impossible.}
+
+\subsubsection{Unmodeled Dynamics}
+
+The success of the 2$^\textrm{nd}$ order Markov model shows that the idealisation
+neglects some hidden states in the system such as gear backlash or sticking
+points. It is very possible that some hidden states remained even with the
+2$^\textrm{nd}$ order model, leaving the dynamics model incapable of predicting the
+effect of these states.  Unfortunately, since the computational requirements
+grow quadratically with the number of consecutive states used for prediction,
+increasing this further is not currently viable, so other approaches to
+countering these hidden states would have to be explored.
+
+\subsubsection{Changed in the Dynamics}
+
+A core assumption of the RMLC system is that the dynamics of the system,
+$\boldsymbol{f}$, stay constant through the training sequence. However, there
+are many physical aspects of the unicycle which can change from trial to
+trial: tyre inflation, battery charge, component positions,\footnote{The
+violent shocks the unicycle undergoes when falling were capable of shifting
+the battery in its mounting, although much effort was put into minimising the
+extent of this.} initial angle,\footnote{The approach of using the
+accelerometer only before the trial, and not during, increases the sensitivity
+to the initial position of the unicycle.} etc. It is unknown how much these
+small changes may have affected the performance of RMLC, but it is possible
+that the failure of the dynamics model at the end of the 3$^\textrm{rd}$
+sequence can be attributed to these.
+
+\subsubsection{Sensor Noise and State Estimation}
+
+While some of the sensors are very high quality, some are extremely bad---in
+particular, the flywheel encoder is one of the least reliable ways of sensing
+speed---and these could be causing serious problems for the dynamics model.
+Despite this, the dynamics model appeared to be capable of predicting the
+unicycle's behaviour well in the 1$^\textrm{st}$ sequence, so perhaps the
+state estimation is not as large a problem as might be expected.
+
+McHutchon was able to significantly improve the performance of a trained
+controller by adding using the dynamics model to generate a linear state
+filter, and using this in conjunction with the final controller. However, the
+effect of state filtering on the learning process has not been investigated.
+
+\pagebreak
 
 \section{Conclusions}
 
-TODO
+After successfully adding a variety of new sensors, replacing the controller,
+reimplementing the unicycle's software and installing a motor controller for
+the flywheel, the unicycle was brought into a suitable state for balancing.
+Even with this work, the unicycle remains a very hard system to stabilise, due
+both to the low quality of the sensors and actuators, and the complexity of
+the ideal mechanics of the system.\footnote{As evidenced by the difficulties
+encountered by Vos and Naveh in designing a controller for it.}
 
-A major part of this project was the work on the unicycle's hardware and
-software. Some of these tasks, such as building a controller and sensor for
-the flywheel, were known from the start, whereas others, such as preventing
-the toothed belt from slipping, were unexpected. However, by the end of the
-project, the unicycle worked reasonably reliably, and the limited success of
-the RMLC-trained controllers demonstrates that our efforts to develop a
-controllable system were successful: the unicycle now has all sensors and
-actuators necessary for balancing.
+Despite these difficulties, RMLC was capable of designing a controller that
+could balance the unicycle until it pulled its support rope taut, and was
+sufficiently robust to maintain balance after this point in some trials. It
+also designed a controller that, in one trial, balanced the unicycle for 5
+seconds, although it appears that the system was forced to sacrifice angular
+stability to stay near the centre of the testing area.
 
-That said, the hardware leaves something to be desired. In particular, the
-flywheel speed sensing is very noisy and the gear trains for the flywheel and
-wheel both have sticking points, where the gears jam and the wheel is
-considerably harder to turn. Despite these problems, and others, the 
+When using conventional control, the focus is on modelling and stabilising
+idealised system dynamics. With RMLC, the focus is shifted to minimising the
+effect of noise to ensure a reliable dynamics model can be learned, and
+accurately representing the real world problem to ensure that trained
+controllers perform well. Techniques such as shorter timesteps,
+2$^\textrm{nd}$ order Markov modelling and carefully avoiding corrupted data
+were found to be critical for the former concern, and choosing an appropriate
+loss function and initial state distribution were important for the latter.
+For difficult systems, these problems may be much simpler than dealing
+directly with the dynamics.
 
-Outline:
+In the case of the unicycle system, previous attempts to stabilise it had
+problems modelling the gyroscopic and Coriolis effects that are inherent in
+the system's dynamics. RMLC frees the designer from these worries, by learning
+the dynamics directly from experience with the system. In particular, it can
+learn the dynamics with extremely small amounts of experience with the system,
+in most cases producing a reasonable controller with less that 10 seconds of
+experience.
 
-\begin{itemize}
-
-
-  \item Most work was directed at hardware and software, not machine learning.
-  \item Even with low-quality sensors, GPs did a good job of modelling system
-    over ~5 seconds with very little experience.
-  \item Were we able to find a controller?
-  \item Applying RMLC involves (a) noise management (timestep, 2nd order
-    markov modelling, avoiding corrupted data) and (b) representing the world
-    accurately (loss function, initial distribution)
-  \item When those conditions are satisfied, RMLC does a very good job of
-    finding controllers capable of achieving a given task, without prior
-    expert knowledge.
-  \item Advantages of RMLC over conventional control.
-    \end{itemize}
+However, it failed to produce a controller that could reliably balance the
+controller for more than 3 seconds. There are a number of possible reasons for
+this---most obvious is the restricted range of the unicycle, preventing the
+unicycle from travelling more than a metre in any direction. RMLC's initial
+success balancing the unicycle suggests that it would be capable of indefinite
+balance if some of the current difficulties could be resolved.
 
 \section{Further Work}
 
-(TODO: succeeded but performance was lacking / achieved short periods of balance)
-
-(TODO: accuracy / confidence of final dynamic model)
+Since the main objective of the project, indefinite balance of the unicycle,
+was not achieved, the obvious avenue for future work is improving either the
+RMLC system or the unicycle to the point that this is possible. Such an
+achievement would provide very compelling evidence of RMLC's suitability for
+difficult control problems.
 
 For further investigation of the performance of RMLC on the unicycle system,
 it would be very useful to build a smaller unicycle. This would completely
@@ -1659,23 +1773,14 @@ accurate predictions from the dynamics model. Further to this, McHutchon had
 success using a Kalman filter based on the dynamics model to improve the state
 observations, and suggested using a non-linear approximation to the dynamics
 model to further improve performance---using the full dynamics model is
-currently impossible, since it simulates at 40x slower than real-time on a
-very fast processor.
+currently impossible, since with 900 datapoints it simulates at 150x slower
+than real-time on a very fast processor.
 
-When the unicycle was first built by Mellors and Lamb in 2004/2005, they
-included a wireless transmitter and receiver for the purpose of allowing a
-human to remotely control the unicycle. 
-(TODO: Once / Now) that the unicycle is capable of balancing and controlling its
-position, it would be interesting to see how well the controller deals with
-changes in its target position. Since it has not been optimised for
-this---McHutchon noted the poor disturbance rejection of RMLC-trained
-controllers---it seems likely that it will not be able to track the target
-position well.
-
-In order to (TODO: balance / achieve this task, or to improve balancing
-performance), it may be necessary to use a more complicated controller than the
-quadratic controller used here. Gaussian Processes have previously been used
-for the controller as well as the dynamic model to allow radically different
+In order to balance indefinitely, it may be necessary to use a more
+complicated controller than the quadratic controller used here. Naveh used
+different control schemes in different regions of state space to improve
+performance. More generally, Gaussian Processes have previously been used for
+the controller as well as the dynamic model to allow radically different
 control strategies to be used in different regions of state space. This is a
 necessity for tasks such as swinging up an inverted pendulum from the
 downwards position, and it seems likely that the greater flexibility of such a
@@ -1684,20 +1789,29 @@ recover from a greater range of position \& angle offsets. However, this would
 almost certainly require a more powerful processor than the AVR used for this
 project.
 
+When the unicycle was first built by Mellors and Lamb in 2004/2005, they
+included a wireless transmitter and receiver for the purpose of allowing a
+human to remotely control the unicycle.  Once the unicycle is capable of
+reliably balancing and controlling its position, it would be interesting to
+see how well the controller deals with changes in its target position. Since
+it has not been optimised for this---McHutchon noted the poor disturbance
+rejection of RMLC-trained controllers---it seems likely that it will not be
+able to track the target position well.
 
 Additionally, while the RMLC system requires extremely little experience with
 the data to generate a good controller, the current implementation requires
 huge amounts of computational time to generate the controllers. The
-2$^\textrm{nd}$ 3D training sequence used 7.4 days of CPU-time on a high-end
+3$^\textrm{rd}$ 3D training sequence used 10 days of CPU-time on a high-end
 server. In addition to optimisations to the training code such as
 approximations of GPR, it would be interesting to investigate the how fast the
 system learns when the amount of optimisation time is more tightly limited.
 
 Despite the flaws of heavy computational requirements and sensitivity to
-disturbances, this approach to control has proven itself by learning to
-balance (other systems / this system) with extremely little experience with
-the system. Addressing these concerns would be very interesting, and could
-make the RMLC method significantly more useful.
+disturbances, this approach to control has proven itself by both its partial
+success on this system, and its success balancing the ideal unicycle in
+Rasmussen's simulations, with extremely little experience with the system.
+Addressing these concerns would be very interesting, and could make the RMLC
+method significantly more useful.
 
 \bibliography{iibproject}
 \bibliographystyle{unsrt}
