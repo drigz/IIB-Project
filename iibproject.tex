@@ -37,19 +37,20 @@
 \thispagestyle{empty}
 
 \pagestyle{plain}
+\begin{spacing}{1.1}
 \tableofcontents
+\end{spacing}
 \newpage
 
 \section*{Technical Abstract}
 
-In 2004 and 2005, a robotic unicycle was built by
-Mellors\cite{ref:mellors} and
-Lamb\cite{ref:lamb} as a Master's project, using a powered wheel and horizontal flywheel
-designed to emulate the actuation used by a human rider, but they lacked the
-time to design a controller. Several years later, D'Souza-Mathew\cite{ref:dsm}
-and then Forster\cite{ref:forster} attempted to stabilise it by adding
-training wheel, and using the wheel to balance in pitch, but were thwarted by
-problems with the hardware.
+In 2004 and 2005, a robotic unicycle was built by Mellors\cite{ref:mellors}
+and Lamb\cite{ref:lamb} as a Master's project, using a powered wheel and
+horizontal flywheel designed to emulate the actuation used by a human rider,
+but they lacked the time to design a controller. Several years later,
+D'Souza-Mathew\cite{ref:dsm} and then Forster\cite{ref:forster} attempted to
+stabilise it by adding training wheels, and using the powered wheel to balance
+in pitch, but were thwarted by problems with the hardware.
 
 The system of the unicycle with a horizontal flywheel actuator had previously
 been studied by Vos\cite{ref:vos} and Naveh\cite{ref:naveh}. Vos built a
@@ -59,17 +60,17 @@ motion of the unicycle to correct for roll errors. Naveh built upon Vos's
 design, coming up with a more capable (and complicated) controller, but did
 not test it on a physical unicycle. 
 
-These projects all sought to build a manageable but accurate analytical
-model of the dynamics of the unicycle. They then applied non-linear control
+These projects all sought to build a manageable but accurate analytical model
+of the dynamics of the unicycle. They then applied non-linear control
 techniques to try to stabilise the unicycle. This is particularly difficult
 for unicycle with a horizontal flywheel, since when it rolls to the side it
 must both rotate in the direction of the fall and then travel forwards to
-catch itself. Such complicated behaviour is hard to capture with analytical
-control techniques.
+catch itself. This brings gyroscopic effects into play, which are hard to
+stabilise with analytical control techniques.
 
 An alternative approach is to build a numerical model of the dynamics directly
 from interaction with the system, and then to computationally design an
-optimal controller for the numerical model---the reinforcement learning
+optimal controller for the numerical model---a reinforcement learning
 problem. An approach to this problem due to Rasmusssen and
 Deisenroth\cite{ref:rasdei08}, Reinforced Model Learnt Control (RMLC), has
 been successfully used to learn to swing up and balance an inverted pendulum,
@@ -82,7 +83,7 @@ keeping track of the certainty of its knowledge about the system.
 Previously, McHutchon had successfully applied RMLC to the unicycle with
 training wheels---this had required several changes to the
 hardware of the unicycle\cite{ref:mchutchon}. His work gave a clear idea of necessary changes to
-the hardware and software of the unicycle in order to enable it to learn to
+the hardware and software of the unicycle in order to enable it to
 balance without training wheels. The first aim of the project was to install a
 new MEMS gyroscope and an Arduino microcontroller, and then to repeat
 McHutchon's stabilisation experiments. These changes solved a number of
@@ -95,7 +96,7 @@ After making these changes, the RMLC system was able to successfully balance
 the unicycle (with training wheels). Additionally, we found we could
 significantly improve the performance of the RMLC-trained controllers by
 reducing the timestep at which the system is discretised, and by modelling the
-discretised system as a 2$^\textrm{nd}$ order Markov Chain. This led to
+discretised system as a 2$^\textrm{nd}$ order Markov chain. This led to
 confident and accurate predictions about the performance of the unicycle, and
 these techniques would be critical in modelling the unicycle without training
 wheels.
@@ -256,9 +257,9 @@ the system (in this case, the unicycle) can be modelled in discrete time as:
 \]
 
 In this equation, $\boldsymbol{q}[n]$ is the state of the system at time $n$,
-and $\boldsymbol{u}[n]$ is control input at time $n$. In the case of the
-unicycle, $\boldsymbol{q}$ consists of angles and angular velocities of the
-components of the unicycle, and the position of the unicycle.
+and $\boldsymbol{u}[n]$ is the control input at time $n$. In the case of the
+unicycle, $\boldsymbol{q}$ consists of the angles and angular velocities of
+the components of the unicycle, and the position of the unicycle.
 $\boldsymbol{u}$ consists of the commands sent to the wheel and flywheel
 motors.
 
@@ -289,7 +290,7 @@ model). This process is shown as the right-hand box, ``Simulation \&
 Controller Optimisation'', in Figure~\ref{fig:rmlc_flowchart}, and is referred
 to as \textbf{training} a controller.
 
-Once a optimal controller has been trained on the simulated system, a
+Once an optimal controller has been trained on the simulated system, a
 \textbf{trial} is performed on the real system (``Real World Testing'' in
 Figure~\ref{fig:rmlc_flowchart}). This generates a log of states and control
 inputs, which can be converted into more samples of $\boldsymbol{f}$,
@@ -356,7 +357,7 @@ and used RMLC to train a controller for this ideal unicycle. Thanks to this,
 and to McHutchon's work on the real 2D system, we have a lot of information on
 which choices can work well in these situations, and which are most important.
 
-In many cases, these choices were made after realising deficiencies in the
+In many cases, these choices were made after noticing deficiencies in the
 performance of RMLC on either the 2D system or the 3D unicycle, as explained
 in Section~\ref{sec:learning_results}.
 
@@ -386,7 +387,8 @@ tend to $\infty$.
 
 The state vector $\boldsymbol{q}[n]$ should be chosen to ensure that the
 future states are a function only of the current state, and current and future
-control inputs. In other words, the states should form a Markov Chain:
+control inputs. In other words, with a known controller the states should form
+a Markov chain:
 \[
   P(\boldsymbol{q}[n+1] | \boldsymbol{q}[i]\textrm{ for } i = 1, \dots, n)
   = P(\boldsymbol{q}[n+1] | \boldsymbol{q}[n])
@@ -464,7 +466,7 @@ shows.
       \label{fig:order2_trained_single}
     }
     \end{center}
-    \caption{Pitch angle predictions with 1$^\textrm{st}$ and $^\textrm{nd}$
+    \caption{Pitch angle predictions with 1$^\textrm{st}$ and 2$^\textrm{nd}$
     order dynamics models}
     \label{fig:order_1_and_2}
     \end{figure}
@@ -499,7 +501,7 @@ states. This is represented in Figure~\ref{fig:initial_order1_diag}.
     \label{fig:initial_state}
     \end{figure}
 
-When we switched to a 2$^\textrm{nd}$ order Markov model, the initial
+When using a 2$^\textrm{nd}$ order Markov model, the initial
 augmented state \\ $\boldsymbol{q}_2[0] = [\boldsymbol{q}[-1]\
 \boldsymbol{u}[-1]\ \boldsymbol{q}[0]]^\textrm{T}$ contains two successive
 states. The simplest choice is to use the same independence assumption as
@@ -539,7 +541,7 @@ inaccuracy in the dynamics model.}
 
 Upon realising this, a new initial state distribution was chosen, based on the
 model that the two previous states are the same, but there is some small
-measurement error, representing the fact that the states are in reality
+measurement error, representing the fact that the states are, in reality,
 different, and also that this model is not quite true. This distribution is
 depicted in Figure~\ref{fig:initial_order2_corr}.
 \begin{IEEEeqnarray*}{rCl}
@@ -609,7 +611,8 @@ first-order IIR filter on the original state:
 This allows the RMLC system to create basic low or high-pass filters in the
 controller, and this additional freedom improved both the loss function and
 the subjective quality of the controllers trained.
-Figure~\ref{fig:con1_and_con2} shows the effect of this change.
+Figure~\ref{fig:con1_and_con2} shows the effect of this change on the optimal
+controllers.
 
 \begin{figure}[htpb]
   \begin{center}
@@ -717,10 +720,10 @@ In addition, since the training sequence with a 50ms timestep developed better
 controllers, trials lasted longer and more data was gathered. As such,
 to compare dynamics models based on similar numbers of datapoints, we must
 provide fewer trial logs for the 50ms dynamics model. This means that it has
-had less of a change to try a variety of strategies, and necessarily is less
+had less of a chance to try a variety of strategies, and necessarily is less
 certain about the dynamics of the system. That said,
 Figure~\ref{fig:timestep_effect} shows the effect of reducing the timestep,
-comparing dynamics model with similar numbers of points
+comparing dynamics models with similar numbers of points
 (Figures \ref{fig:angle_100ms} and \ref{fig:angle_50ms}) and after the same
 number of trials (Figures \ref{fig:angle_100ms} and \ref{fig:angle_50ms_8th}).
 
@@ -804,11 +807,12 @@ accelerometer, to determine the absolute angle of the unicycle.
 
 The ITG-3200 rate gyro determines the angular velocity of the chip, and thus
 the unicycle, around each of its 3 axes. These values are offset by some
-unknown bias - this is determined before the trial by averaging the output
+unknown bias---this is determined before the trial by averaging the output
 when stationary, and is assumed to be approximately constant during a
-trial.\footnote{Approximately true for short trials.} They can then be
-converted to radians per second with a calibration factor from the datasheet
-\cite{ref:itg3200}.
+trial.\footnote{The bias drift over 10 seconds was measured to be negligible.
+For longer trials, this would have to be taken into account.} After removing
+the bias, the readings can be converted to radians per second with a
+calibration factor from the datasheet \cite{ref:itg3200}.
 
 To keep track of the unicycle's orientation, these angular velocities must be
 integrated. There are 3 commonly used ways to keep track of rotations in 3D,
@@ -947,12 +951,12 @@ many highly tuned implementations developed by UAV hobbyists
 
 \paragraph{Accelerometer Noise}
 Figure~\ref{fig:acc_stat} shows the accelerometer noise when stationary (the
-mean reading has been subtracted).\footnote{Note that the noise characteristic is very
-different for one axis compared to the other 2 - this is because this axis is
-perpendicular to the chip, and is built differently.} These noises correspond
-to noise standard deviations for pitch and roll of about 0.5$^\circ$, but this
-can be reduced by averaging many readings. More detail on the use of the
-accelerometer can be found in Douglass's report.
+mean reading has been subtracted).\footnote{Note that the noise characteristic
+is very different for one axis compared to the other 2 - this is because this
+axis is perpendicular to the chip, and as such is built differently.} These
+noises correspond to noise standard deviations for pitch and roll of about
+0.5$^\circ$, but this can be reduced by averaging many readings. More detail
+on the use of the accelerometer can be found in Douglass's report.
 
 \begin{figure}[htpb]
   \begin{center}
@@ -1026,7 +1030,7 @@ short, and this time may be hard to measure accurately.
 
 This became more important when we added a quadrature encoder for the
 flywheel: the sensors used are much less accurate than those on the wheel.
-There are only 72 pulses per revolution, and there is significant
+There are only 96 pulses per revolution, and there is significant
 non-uniformity around the wheel. This means that the first method would have a
 quantisation error of 94$^\circ/$s, and the second method would only be
 accurate to within around 50\%. This is unacceptable accuracy.
@@ -1056,7 +1060,7 @@ ratio, as determined from the GP hyperparameters.
 
 Due to the trial-and-error nature of the RMLC method, the unicycle must be
 able to survive using a controller that may be worse than none at all. When
-the dynamics model is inaccurate, it may choose a controller than throws the
+the dynamics model is inaccurate, it may choose a controller that throws the
 30kg unicycle towards the ground with the combined forces of gravity and the
 motor.  Figure~\ref{fig:alu_bar} shows the effect of repeated trials on the
 aluminium bar used in the previous year.
@@ -1124,8 +1128,7 @@ turning:
   \item The gear ratio for the flywheel was chosen badly.
   \item The flywheel had insufficient moment of inertia to turn the robot fast
     enough, even without the above effects.
-  \item The flywheel motor was insufficiently powerful, even without the above
-    effects.
+  \item The flywheel motor was insufficiently powerful.
     \end{itemize*}
 
 To try to quantify this, we suspended the robot above the ground, and tested
@@ -1180,7 +1183,7 @@ Section~\ref{sec:flywheel_encoder}.}
 
 If we integrate to get the flywheel angle, and then assume that there are no
 external torques on the robot and that the robot has MoI
-$J_r$\footnote{Including the skirt, if attached}:
+$J_r$:\footnote{Including the skirt, if attached.}
 \begin{IEEEeqnarray*}{rCl}
   \omega_\textrm{flywheel}(t) &=& K (1 - e^{-\frac{t}{\tau}}) \\
   \theta_\textrm{flywheel}(t) &=& K (t + \tau (e^{-\frac{t}{\tau}} - 1)) \\
@@ -1291,7 +1294,7 @@ our best to stop them from interfering with the testing process.
 The robot uses a toothed belt to transfer torque to the wheel, shown in
 Figure~\ref{fig:fan_belt}. During tests, it would frequently slip when the
 controller demanded large changes in motor velocity. This leads to a mismatch
-between the encoder reading at the actual position, which would cause great
+between the encoder reading and the actual position, which would cause great
 problems for the dynamic model. As such, it was critical to make sure that we
 observed carefully for trials in which the belt slipped, and removed the
 corrupted data from the logs. Towards the end of the testing process, we
@@ -1317,11 +1320,11 @@ that while the PWM input went through to the output, both terminals of the
 motor were driven with exactly the same PWM signal, with no potential
 difference across the motor.
 
-The cause of this is unknown, but likely an electrical problem due to the
-unpredictable behaviour and sensitivity to contact from the voltmeter probe.
-Because we were unable to prevent it from happening, we modified the software
-to test both motors before every trial. This allowed us to power cycle the
-system to avoid the problem whenever it was detected.
+The cause of this is unknown, but likely an electrical problem judging from
+the unpredictable behaviour and sensitivity to contact from the voltmeter
+probe.  Because we were unable to prevent it from happening, we modified the
+software to test both motors before every trial. This allowed us to power
+cycle the system to avoid the problem whenever it was detected.
 
 \subsubsection{Flywheel Encoder}
 \label{sec:flywheel_encoder}
@@ -1335,7 +1338,7 @@ model to predict.
 
 \begin{figure}[htpb]
   \begin{center}
-    \includegraphics[height=8cm]{bad_fly_speed.pdf}
+    \includegraphics[height=7cm]{bad_fly_speed.pdf}
     \end{center}
     \caption{Corrupted flywheel speed measurements}
     \label{fig:bad_fly_speed}
@@ -1343,14 +1346,15 @@ model to predict.
 
 As described in Douglass's report, the flywheel encoder uses Schmitt triggers
 to digitise the analog encoder outputs. Figure~\ref{fig:scope_trace} shows a
-trace of the input and output to this signal cleaning circuit (the two traces
-have been traced in an image editor for clarity). There appears to be a
-negative spike in the signal, part-way through the high cycle.  This is due to
-interference between the two quadrature sensors.\footnote{Covering one emitter removed
-the spike.} Unfortunately, the low hysteresis voltage on the model of Schmitt
-trigger used (0.4V min., 0.7V typ.) means that this is enough to reach the
-threshold and cause problems. The extent of this problem was limited slightly
-by placing a larger piece of cardboard between the two sensors.
+trace of the input and output to this signal cleaning circuit (the two
+waveforms have been traced in an image editor for clarity). There appears to
+be a negative spike in the signal, part-way through the high cycle.  This is
+due to interference between the two quadrature sensors.\footnote{Covering one
+emitter removed the spike.} Unfortunately, the low hysteresis voltage on the
+model of Schmitt trigger used\footnote{0.4V minimum, 0.7V typical} means that
+this is enough to reach the threshold and cause problems. The extent of this
+problem was limited slightly by placing a larger piece of cardboard between
+the two sensors.
 
 \begin{figure}[htpb]
   \begin{center}
@@ -1387,7 +1391,7 @@ peripherals. We chose to use the I$^2$C driver provided by the Arduino
 project, which served us well initially. However, we found that occasionally,
 and unpredictably, the Arduino would stop responding. We narrowed this down to
 an infinite loop in the I$^2$C driver, waiting for a response from the
-ADXL345.
+peripheral.
 
 We were unable to identify or remove the cause of this problem, which could be
 anything from a race-condition in the software to damage to one of the
@@ -1441,12 +1445,13 @@ Due to a calculation error, the first sequence used a loss function that very
 heavily penalised the distance moved (see Section~\ref{sec:loss_function})---a
 movement of 10cm was considered ``as bad as'' an angle of 10$^\circ$. This led
 to a controller which would intentionally fall as fast as possible to stop the
-unicycle dead. Figure~\ref{fig:high_dist_loss} shows the effect of this on the
-trajectory of the trials: by the end, the distance moved is consistently
-extremely small. Although the optimal controller would be one that kept both
-distance and angle close to zero, the problem is that intentionally falling is
-a local optimum: initially, it is more attractive to fall than to try to
-balance, and it never gathers any data suggesting that it can balance.
+unicycle without moving. Figure~\ref{fig:high_dist_loss} shows the effect of
+this on the trajectory of the trials: by the end, the distance moved is
+consistently extremely small. Although the optimal controller would be one
+that kept both distance and angle close to zero, the problem is that
+intentionally falling is a local optimum: initially, it is more attractive to
+fall than to try to balance, and it never gathers any data suggesting that it
+can balance.
 
 \begin{figure}[htpb]
   \begin{center}
@@ -1463,7 +1468,7 @@ growing instability.\footnote{These prediction plots are described in
 Section~\ref{sec:prediction_plots}.} However, this is despite the fact that
 the uncertainty of the prediction grows extremely rapidly. Clearly, the
 dynamics model has managed to capture enough of the dynamics of the real
-system to allow balancing the unicycle, yet is extremely uncertain about its
+system to allow balancing the unicycle, yet is very uncertain about its
 predictions.
 
 \begin{figure}[htpb]
@@ -1504,7 +1509,7 @@ from the gear train. We suspected that problems like gear backlash were
 contributing to the poor performance of the system, and so we gave the dynamic
 model access to two consecutive states when predicting (as described in
 Section~\ref{sec:state_vector}). This further improved the confidence of the
-prediction, shown in Figure~\ref{fig:2d_hist} and the quality of the
+prediction, shown in Figure~\ref{fig:2d_hist}, and the quality of the
 controller. Unfortunately, the log data for this trial was lost, but a video
 remains: the unicycle is observed to remain balanced, but to be in a limit
 cycle oscillation, slowly falling one way, before picking itself up and
@@ -1540,9 +1545,9 @@ effect on the motor, improving the performance.}
 
 Once all necessary work was complete, we initiated a training sequence for the
 3D unicycle. As detailed in Section~\ref{sec:fall_protection}, we realised
-that we couldn't use the skirt for fall protection, and decided to suspend the
-unicycle to protect it. We then iterated through a training sequence, and
-observed that the system learned to balance the robot very quickly.
+that we couldn't use the skirt for fall protection, and decided to use a loose
+rope to protect the unicycle. We then iterated through a training sequence,
+and observed that the system learned to balance the robot very quickly.
 
 As shown in Figure~\ref{fig:3d_1st_sequence_angle}, though initial trials
 disagreed greatly with the prediction, by the 3$^\textrm{rd}$ trial the system
@@ -1597,15 +1602,15 @@ worth of experience with the system, we noticed the problem with the initial
 state distribution described in Section~\ref{sec:initial_state_distribution}.
 After fixing this problem, the simulations represented reality much better,
 and the RMLC system was able to train better controllers. After 3 more trials,
-the trained controller could keep the unicycle upright for the optimisation
-horizon of 5 seconds, as shown in Figure~\ref{fig:3d_3rd_trial_17}. However,
-it is clear that the dynamics model is not fully capturing the behaviour of
-the unicycle: the real trial's trajectory makes large excursions outside of
-the predicted confidence intervals. Furthermore, trials will consistently
-follow this unpredicted trajectory, as shown in
-Figure~\ref{fig:3d_3rd_many_17}, which shows the trajectories of 9 trials
-with the same controller. It also shows that the 5 second trial was
-unrepresentative of the performance of the controller.
+the trained controller successfully kept the unicycle upright for the
+optimisation horizon of 5 seconds, as shown in
+Figure~\ref{fig:3d_3rd_trial_17}. However, it is clear that the dynamics model
+is not fully capturing the behaviour of the unicycle: the real trial's
+trajectory makes large excursions outside of the predicted confidence
+intervals. Furthermore, trials will consistently follow this unpredicted
+trajectory, as shown in Figure~\ref{fig:3d_3rd_many_17}, which shows the
+trajectories of 9 trials with the same controller. It also shows that the 5
+second trial was unrepresentative of the performance of the controller.
 
 \begin{figure}[htpb]
   \begin{center}
@@ -1647,12 +1652,12 @@ blame for the unsatisfactory performance.
 
 \subsubsection{Restricted Range}
 
-The smooth balance, achieved in the early stages of the 1$^\textrm{st}$ and
-3$^\textrm{rd}$ sequences, was very promising. It showed that the system was
-capable of balancing the unicycle, while also being able to track its motion
-in the plane, as suggested by Figure~\ref{fig:3d_1st_sequence}. This would
-suggest that it would be reasonably simple for the system to generate the
-correct turning commands to follow a circular path around the target.
+The smooth balance, achieved in the 1$^\textrm{st}$ and 3$^\textrm{rd}$
+sequences, was very promising. It showed that the system was capable of
+balancing the unicycle, while also being able to predict horizonal motion, as
+demonstrated by Figure~\ref{fig:3d_1st_sequence}. This would suggest that it
+would be reasonably simple for the system to generate the correct turning
+commands to follow a circular path around the target.
 
 It is possible that the reason the system then seemed to lose the ability to
 reliably balance the unicycle after this point is that it was unable to follow
@@ -1677,7 +1682,7 @@ grow quadratically with the number of consecutive states used for prediction,
 increasing this further is not currently viable, so other approaches to
 countering these hidden states would have to be explored.
 
-\subsubsection{Changed in the Dynamics}
+\subsubsection{Changes in the Dynamics}
 
 A core assumption of the RMLC system is that the dynamics of the system,
 $\boldsymbol{f}$, stay constant through the training sequence. However, there
@@ -1706,9 +1711,7 @@ controller by adding using the dynamics model to generate a linear state
 filter, and using this in conjunction with the final controller. However, the
 effect of state filtering on the learning process has not been investigated.
 
-\pagebreak
-
-\section{Conclusions}
+\section{Conclusion}
 
 After successfully adding a variety of new sensors, replacing the controller,
 reimplementing the unicycle's software and installing a motor controller for
@@ -1740,9 +1743,9 @@ In the case of the unicycle system, previous attempts to stabilise it had
 problems modelling the gyroscopic and Coriolis effects that are inherent in
 the system's dynamics. RMLC frees the designer from these worries, by learning
 the dynamics directly from experience with the system. In particular, it can
-learn the dynamics with extremely small amounts of experience with the system,
-in most cases producing a reasonable controller with less that 10 seconds of
-experience.
+learn the dynamics with remarkably small amounts of experience with the
+system, in most cases producing a reasonable controller with less that 10
+seconds of experience.
 
 However, it failed to produce a controller that could reliably balance the
 controller for more than 3 seconds. There are a number of possible reasons for
@@ -1798,13 +1801,13 @@ it has not been optimised for this---McHutchon noted the poor disturbance
 rejection of RMLC-trained controllers---it seems likely that it will not be
 able to track the target position well.
 
-Additionally, while the RMLC system requires extremely little experience with
-the data to generate a good controller, the current implementation requires
-huge amounts of computational time to generate the controllers. The
-3$^\textrm{rd}$ 3D training sequence used 10 days of CPU-time on a high-end
-server. In addition to optimisations to the training code such as
-approximations of GPR, it would be interesting to investigate the how fast the
-system learns when the amount of optimisation time is more tightly limited.
+Additionally, while the RMLC system requires little experience with the data
+to generate a good controller, the current implementation requires huge
+amounts of computational time to generate the controllers. The 3$^\textrm{rd}$
+3D training sequence used 10 days of CPU-time on a high-end server. In
+addition to optimisations to the training code such as approximations of GPR,
+it would be interesting to investigate the how fast the system learns when the
+amount of optimisation time is more tightly limited.
 
 Despite the flaws of heavy computational requirements and sensitivity to
 disturbances, this approach to control has proven itself by both its partial
